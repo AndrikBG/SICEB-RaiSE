@@ -48,6 +48,88 @@ US-071, US-074, US-004, US-005, US-064, PER-01, ESC-01, ESC-02, ESC-03, CRN-24, 
 | S4.4 | PWA views | M | A4.7 | S4.1, S4.2, S4.3 |
 | S4.5 | Scalability validation | S | A4.8 | S4.1, S4.2 |
 
+## Implementation Plan
+
+### Sequencing Strategy: Dependency-driven + Risk-first
+
+S4.1 unblocks everything. S4.2 is critical path and highest risk (partitioning, triggers, pg_notify, WebSocket security). S4.3 is small and parallelizable with S4.2 if team capacity exists; otherwise sequential after S4.2 since it's on the PWA critical path. S4.4 integrates all backend work. S4.5 validates the epic hypothesis.
+
+### Sequence
+
+| Order | Story | Rationale | Enables |
+|-------|-------|-----------|---------|
+| 1 | **S4.1** Branch management + context switching | Walking skeleton — proves branch write operations work with existing multi-tenant infra. Unblocks all other stories. | S4.2, S4.3, S4.4, S4.5 |
+| 2 | **S4.2** Inventory CQRS + real-time | Risk-first — largest story, most unknowns (partitioning DDL, PG triggers, pg_notify→STOMP bridge, WebSocket JWT auth). Critical path to PWA. | S4.4, S4.5 |
+| 3 | **S4.3** Tariff configuration | Quick win — small scope, proven patterns (CRUD + temporal query). Completes backend API surface for PWA. | S4.4 |
+| 4 | **S4.4** PWA views | Integration story — consumes all backend APIs. E2E integration checkpoint. | S4.5 |
+| 5 | **S4.5** Scalability validation | Validation — needs real data from S4.1+S4.2. Closes the epic hypothesis. | Epic done |
+
+### Parallel Opportunities
+
+- **S4.2 + S4.3** could run in parallel (different codebase areas: `domain.inventory` vs `domain.billing`). Single developer: sequential as shown.
+- **S4.4 PWA** can start branch views while S4.3 finishes (branch API from S4.1 is available first).
+
+### Milestones
+
+#### M1: Walking Skeleton (after S4.1)
+- [ ] Branch registered via `POST /branches` with audit event
+- [ ] 5-step onboarding completes in <1 hour
+- [ ] Branch context switch via `POST /session/branch` returns new JWT in <3 seconds
+- [ ] RLS enforced on new tables (branch_onboarding_status, branch_service_catalog)
+- [ ] Permissions seeded and verified via existing role admin UI
+- **Demo:** Register new branch → onboarding → switch to it → see empty inventory context
+
+#### M2: Core Backend Complete (after S4.2 + S4.3)
+- [ ] 5 delta command types working with idempotency enforcement
+- [ ] StockMaterializationTrigger materializes stock transactionally
+- [ ] pg_notify → STOMP push delivers inventory changes to subscribed clients
+- [ ] WebSocket JWT auth rejects unauthorized subscriptions
+- [ ] Tariff CRUD with effective-date resolution working
+- [ ] Partitioning validated: queries use partition pruning (EXPLAIN ANALYZE)
+- **Demo:** Increment stock via API → see materialized stock → receive WebSocket event → query tariff
+
+#### M3: E2E Integration (after S4.4) — PAT-E-539
+- [ ] All PWA views render and interact with real backend (Docker Compose, real DB)
+- [ ] Branch management: register, onboard, switch — full flow in browser
+- [ ] Inventory dashboard: delta mutation → real-time grid update via WebSocket
+- [ ] Tariff config: create, resolve active, view history
+- [ ] Role-gated: admin sees cross-branch, service manager sees own service only
+- [ ] Cross-story contract validation: auth headers, payload schemas, WebSocket channels
+- **Demo:** Full user journey: login → select branch → view inventory → make stock adjustment → see real-time update → switch branch → see different inventory
+
+#### M4: Epic Complete (after S4.5)
+- [ ] Scalability report: 3→15 branches with <10% query degradation
+- [ ] WebSocket: ~150 concurrent connections sustained
+- [ ] Patient search sub-1s with >50K records (carried from Phase 2)
+- [ ] All done criteria checked
+- [ ] Retrospective completed
+- **Gate:** `/rai-epic-close`
+
+### Progress Tracking
+
+| Story | Status | Branch | Started | Completed | Notes |
+|-------|--------|--------|---------|-----------|-------|
+| S4.1 | Pending | — | — | — | |
+| S4.2 | Pending | — | — | — | |
+| S4.3 | Pending | — | — | — | |
+| S4.4 | Pending | — | — | — | |
+| S4.5 | Pending | — | — | — | |
+
+| Milestone | Status | Verified |
+|-----------|--------|----------|
+| M1: Walking Skeleton | Pending | — |
+| M2: Core Backend | Pending | — |
+| M3: E2E Integration | Pending | — |
+| M4: Epic Complete | Pending | — |
+
+### Sequencing Risks
+
+| # | Risk | Mitigation |
+|---|------|------------|
+| 1 | S4.2 is large (L) and could stall the critical path | Decompose into tasks early via `/rai-story-plan`; if blocked on triggers, advance S4.3 |
+| 2 | No Testcontainers infrastructure — S4.2 needs DB integration tests for triggers/RLS/partitioning | Add Testcontainers setup as first task of S4.2 (gap G2 from Phase 3) |
+| 3 | No load testing tool exists — S4.5 can't execute without k6/JMeter | Introduce k6 in S4.5 first task; don't defer tooling to end |
+
 ## Source of Truth
 
 > [`docs/ADD/implementation/phase4-inventory.md`](../../../docs/ADD/implementation/phase4-inventory.md)
