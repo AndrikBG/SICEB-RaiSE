@@ -38,16 +38,15 @@ US-071, US-074, US-004, US-005, US-064, PER-01, ESC-01, ESC-02, ESC-03, CRN-24, 
 - [ ] PWA views functional for all roles
 - [ ] Scalability report: 3→15 branches validated
 
-## Planned Stories
+## Stories
 
-> Detailed breakdown in `/rai-epic-plan`. Tentative grouping:
-
-| # | Story | Activities |
-|---|-------|-----------|
-| S4.1 | Branch management + context switching | A4.1, A4.5 (partial), A4.6 |
-| S4.2 | Inventory CQRS + real-time | A4.2, A4.3, A4.5 (partial) |
-| S4.3 | Tariff management + PWA views | A4.4, A4.7 |
-| S4.4 | Scalability validation + carried items | A4.8 |
+| # | Story | Size | Activities | Dependencies |
+|---|-------|------|-----------|-------------|
+| S4.1 | Branch management + context switching | M | A4.1, A4.5.2, A4.6 | None |
+| S4.2 | Inventory CQRS + real-time propagation | L | A4.2, A4.3, A4.5.1, A4.5.2 | S4.1 |
+| S4.3 | Tariff configuration | S | A4.4 | S4.1 |
+| S4.4 | PWA views | M | A4.7 | S4.1, S4.2, S4.3 |
+| S4.5 | Scalability validation | S | A4.8 | S4.1, S4.2 |
 
 ## Source of Truth
 
