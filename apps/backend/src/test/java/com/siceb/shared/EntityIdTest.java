@@ -18,11 +18,12 @@ class EntityIdTest {
     }
 
     @Test
-    void generatedIdsAreTimeOrdered() {
+    void generatedIdsAreTimeOrdered() throws InterruptedException {
         EntityId first = EntityId.generate();
+        Thread.sleep(1); // Force different millisecond timestamp
         EntityId second = EntityId.generate();
         // UUID v7 MSB encodes timestamp — lexicographic order follows time
-        assertTrue(first.value().compareTo(second.value()) <= 0);
+        assertTrue(first.value().compareTo(second.value()) < 0);
     }
 
     @Test
