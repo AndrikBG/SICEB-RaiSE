@@ -1,5 +1,13 @@
 # Integration test profile — Testcontainers provides datasource via @DynamicPropertySource
 spring:
+  datasource:
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+      connection-timeout: 30000
+      idle-timeout: 60000
+      max-lifetime: 120000
+      validation-timeout: 5000
   jpa:
     hibernate:
       ddl-auto: validate
