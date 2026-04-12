@@ -71,12 +71,12 @@ S4.1 unblocks everything. S4.2 is critical path and highest risk (partitioning, 
 
 ### Milestones
 
-#### M1: Walking Skeleton (after S4.1)
-- [ ] Branch registered via `POST /branches` with audit event
-- [ ] 5-step onboarding completes in <1 hour
-- [ ] Branch context switch via `POST /session/branch` returns new JWT in <3 seconds
-- [ ] RLS enforced on new tables (branch_onboarding_status, branch_service_catalog)
-- [ ] Permissions seeded and verified via existing role admin UI
+#### M1: Walking Skeleton (after S4.1) -- DONE 2026-04-12
+- [x] Branch registered via `POST /branches` with audit event
+- [x] 5-step onboarding completes in <1 hour
+- [x] Branch context switch via `POST /session/branch` returns new JWT in <3 seconds (40ms measured)
+- [x] RLS enforced on new tables (branch_onboarding_status, branch_service_catalog)
+- [x] Permissions seeded and verified via existing role admin UI
 - **Demo:** Register new branch → onboarding → switch to it → see empty inventory context
 
 #### M2: Core Backend Complete (after S4.2 + S4.3)
@@ -109,7 +109,7 @@ S4.1 unblocks everything. S4.2 is critical path and highest risk (partitioning, 
 
 | Story | Status | Branch | Started | Completed | Notes |
 |-------|--------|--------|---------|-----------|-------|
-| S4.1 | Pending | — | — | — | |
+| S4.1 | Done | `story/s4.1/branch-management` | 2026-04-11 | 2026-04-12 | 5 tasks, 110 tests, 0.83x velocity |
 | S4.2 | Pending | — | — | — | |
 | S4.3 | Pending | — | — | — | |
 | S4.4 | Pending | — | — | — | |
@@ -117,7 +117,7 @@ S4.1 unblocks everything. S4.2 is critical path and highest risk (partitioning, 
 
 | Milestone | Status | Verified |
 |-----------|--------|----------|
-| M1: Walking Skeleton | Pending | — |
+| M1: Walking Skeleton | Done | 2026-04-12 — all AC verified via Docker |
 | M2: Core Backend | Pending | — |
 | M3: E2E Integration | Pending | — |
 | M4: Epic Complete | Pending | — |
