@@ -21,13 +21,15 @@ import static org.junit.jupiter.api.Assertions.*;
 class DomainStubsArchTest {
 
     /**
-     * Modules activated so far — Phase 2 activates clinicalcare, prescriptions, laboratory.
-     * Add modules here as their iteration begins.
+     * Modules activated so far — add modules here as their iteration begins.
+     * Phase 2: clinicalcare, prescriptions, laboratory.
+     * Phase 4: inventory.
      */
     private static final Set<String> ACTIVATED_MODULES = Set.of(
             "com.siceb.domain.clinicalcare",
             "com.siceb.domain.prescriptions",
-            "com.siceb.domain.laboratory"
+            "com.siceb.domain.laboratory",
+            "com.siceb.domain.inventory"
     );
 
     private static final JavaClasses domainClasses = new ClassFileImporter()

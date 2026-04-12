@@ -1,9 +1,9 @@
 /**
- * Inventory module — Branch-scoped stock tracking, intent-based delta commands (CRN-43),
- * minimum thresholds, low-stock alerts, expiration tracking. No outgoing domain dependencies.
+ * Inventory module — Branch-scoped stock tracking via CQRS delta commands (CRN-43/CRN-44).
+ * Append-only delta store with PG trigger materialization, idempotency keys,
+ * low-stock alerts, and expiration tracking.
  *
- * <p>Dependencies: none (leaf module). Depends on: Pharmacy, Supply Chain (incoming).
- * <p>Implementation: Iteration 4.
- * <p>Constraint IC-01: This module is a STUB — no business logic until its iteration.
+ * <p>Dependencies: none (leaf module). Consumed by: Pharmacy, Supply Chain (incoming).
+ * <p>Implementation: Phase 4 (S4.2).
  */
 package com.siceb.domain.inventory;
