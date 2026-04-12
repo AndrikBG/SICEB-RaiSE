@@ -108,11 +108,12 @@ public class GlobalExceptionHandler {
     private HttpStatus mapToHttpStatus(ErrorCode code) {
         return switch (code) {
             case RESOURCE_NOT_FOUND -> HttpStatus.NOT_FOUND;
-            case RESOURCE_ALREADY_EXISTS -> HttpStatus.CONFLICT;
+            case RESOURCE_ALREADY_EXISTS, CONFLICT, OPTIMISTIC_LOCK_CONFLICT -> HttpStatus.CONFLICT;
             case VALIDATION_FAILED, INVALID_FORMAT, MISSING_REQUIRED_FIELD -> HttpStatus.BAD_REQUEST;
             case BUSINESS_RULE_VIOLATION, IMMUTABLE_RECORD -> HttpStatus.UNPROCESSABLE_ENTITY;
             case IDEMPOTENCY_KEY_REUSED -> HttpStatus.CONFLICT;
-            case BRANCH_CONTEXT_REQUIRED, BRANCH_ACCESS_DENIED -> HttpStatus.BAD_REQUEST;
+            case BRANCH_CONTEXT_REQUIRED -> HttpStatus.BAD_REQUEST;
+            case BRANCH_ACCESS_DENIED -> HttpStatus.FORBIDDEN;
             case UNAUTHORIZED, INVALID_CREDENTIALS, TOKEN_EXPIRED -> HttpStatus.UNAUTHORIZED;
             case FORBIDDEN, RESIDENCY_RESTRICTED, SUPERVISION_REQUIRED -> HttpStatus.FORBIDDEN;
             default -> HttpStatus.INTERNAL_SERVER_ERROR;

@@ -9,6 +9,8 @@ import com.siceb.platform.branch.repository.BranchRepository;
 import com.siceb.platform.branch.service.BranchContextService;
 import com.siceb.platform.branch.service.BranchOnboardingOrchestrator;
 import com.siceb.platform.branch.service.BranchRegistrationService;
+import com.siceb.platform.iam.security.AuthorizationService;
+import com.siceb.platform.iam.security.SicebUserPrincipal;
 import com.siceb.shared.ErrorCode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,6 +21,7 @@ import org.springframework.http.HttpStatus;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -34,6 +37,7 @@ class BranchControllerTest {
     @Mock private BranchOnboardingOrchestrator onboardingOrchestrator;
     @Mock private BranchRepository branchRepository;
     @Mock private BranchOnboardingStepRepository onboardingStepRepository;
+    @Mock private AuthorizationService authorizationService;
 
     private BranchController controller;
 
@@ -41,7 +45,7 @@ class BranchControllerTest {
     void setUp() {
         controller = new BranchController(
                 registrationService, contextService, onboardingOrchestrator,
-                branchRepository, onboardingStepRepository);
+                branchRepository, onboardingStepRepository, authorizationService);
     }
 
     @Test
@@ -136,11 +140,15 @@ class BranchControllerTest {
     void switchBranch_valid_returns200() {
         UUID userId = UUID.randomUUID();
         UUID branchId = UUID.randomUUID();
+        var principal = new SicebUserPrincipal(
+                userId, "admin", "Admin", "Administrador General", null,
+                branchId, Set.of(), Set.of(branchId.toString()), null);
+        when(authorizationService.currentPrincipal()).thenReturn(principal);
         var switchResult = new BranchContextService.BranchSwitchResult("jwt", branchId, "Norte");
         when(contextService.switchBranch(userId, branchId)).thenReturn(switchResult);
 
         var request = new BranchController.SwitchBranchRequest(branchId);
-        var response = controller.switchBranch(userId, request, null);
+        var response = controller.switchBranch(request);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals("jwt", response.getBody().accessToken());

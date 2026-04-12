@@ -6,6 +6,7 @@ import com.siceb.platform.branch.command.UpdateBranchCommand;
 import com.siceb.platform.branch.entity.Branch;
 import com.siceb.platform.branch.exception.BranchException;
 import com.siceb.platform.branch.repository.BranchRepository;
+import com.siceb.platform.branch.TenantContext;
 import com.siceb.shared.ErrorCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,12 +90,16 @@ public class BranchRegistrationService {
         return branch;
     }
 
-    private void emitAuditEvent(String action, UUID branchId, String branchName) {
+    private void emitAuditEvent(String action, UUID targetBranchId, String branchName) {
+        // Use the caller's tenant context (admin's active branch) for the audit record's branch_id FK.
+        // The target branch goes in targetId (no FK constraint). This avoids FK violations when
+        // the target branch is being created in the outer transaction (REQUIRES_NEW isolation).
+        UUID contextBranchId = TenantContext.get().orElse(null);
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("event", action);
         payload.put("branchName", branchName);
         auditEventReceiver.recordSecurityEvent(
                 new AuditEventReceiver.SecurityAuditEvent(
-                        action, null, branchId, "Branch", branchId, null, null, payload));
+                        action, null, contextBranchId, "Branch", targetBranchId, null, null, payload));
     }
 }

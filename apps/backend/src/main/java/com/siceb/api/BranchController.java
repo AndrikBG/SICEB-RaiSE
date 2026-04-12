@@ -10,14 +10,11 @@ import com.siceb.platform.branch.repository.BranchRepository;
 import com.siceb.platform.branch.service.BranchContextService;
 import com.siceb.platform.branch.service.BranchOnboardingOrchestrator;
 import com.siceb.platform.branch.service.BranchRegistrationService;
-import com.siceb.platform.iam.service.JwtTokenService;
+import com.siceb.platform.iam.security.AuthorizationService;
 import com.siceb.shared.ErrorCode;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -36,18 +33,21 @@ public class BranchController {
     private final BranchOnboardingOrchestrator onboardingOrchestrator;
     private final BranchRepository branchRepository;
     private final BranchOnboardingStepRepository onboardingStepRepository;
+    private final AuthorizationService authorizationService;
 
     public BranchController(
             BranchRegistrationService registrationService,
             BranchContextService contextService,
             BranchOnboardingOrchestrator onboardingOrchestrator,
             BranchRepository branchRepository,
-            BranchOnboardingStepRepository onboardingStepRepository) {
+            BranchOnboardingStepRepository onboardingStepRepository,
+            AuthorizationService authorizationService) {
         this.registrationService = registrationService;
         this.contextService = contextService;
         this.onboardingOrchestrator = onboardingOrchestrator;
         this.branchRepository = branchRepository;
         this.onboardingStepRepository = onboardingStepRepository;
+        this.authorizationService = authorizationService;
     }
 
     @PostMapping("/branches")
@@ -121,10 +121,9 @@ public class BranchController {
 
     @PostMapping("/session/branch")
     public ResponseEntity<BranchSwitchResponse> switchBranch(
-            @RequestAttribute("userId") UUID userId,
-            @Valid @RequestBody SwitchBranchRequest request,
-            HttpServletResponse httpResponse) {
+            @Valid @RequestBody SwitchBranchRequest request) {
 
+        UUID userId = authorizationService.currentPrincipal().userId();
         BranchContextService.BranchSwitchResult result = contextService.switchBranch(userId, request.branchId());
 
         return ResponseEntity.ok(new BranchSwitchResponse(
