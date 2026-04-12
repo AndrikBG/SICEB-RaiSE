@@ -104,6 +104,13 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Excel Export -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>5.3.0</version>
+        </dependency>
+
         <!-- Observability -->
         <dependency>
             <groupId>io.micrometer</groupId>

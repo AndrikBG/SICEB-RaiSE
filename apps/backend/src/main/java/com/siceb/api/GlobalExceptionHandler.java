@@ -1,6 +1,7 @@
 package com.siceb.api;
 
 import com.siceb.domain.clinicalcare.exception.ClinicalDomainException;
+import com.siceb.domain.inventory.exception.InventoryException;
 import com.siceb.platform.branch.exception.BranchException;
 import com.siceb.platform.consent.service.LfpdpppComplianceTracker;
 import com.siceb.platform.iam.service.AuthenticationService;
@@ -67,6 +68,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(response);
     }
 
+    @ExceptionHandler(InventoryException.class)
+    public ResponseEntity<ErrorResponse> handleInventory(InventoryException ex) {
+        HttpStatus status = mapToHttpStatus(ex.getErrorCode());
+        ErrorResponse response = ErrorResponse.of(ex.getErrorCode(), ex.getMessage());
+        log.warn("Inventory error: {} — {}", ex.getErrorCode(), ex.getMessage());
+        return ResponseEntity.status(status).body(response);
+    }
+
     @ExceptionHandler(ClinicalDomainException.class)
     public ResponseEntity<ErrorResponse> handleClinicalDomain(ClinicalDomainException ex) {
         HttpStatus status = mapToHttpStatus(ex.getErrorCode());
@@ -111,7 +120,7 @@ public class GlobalExceptionHandler {
             case RESOURCE_ALREADY_EXISTS, CONFLICT, OPTIMISTIC_LOCK_CONFLICT -> HttpStatus.CONFLICT;
             case VALIDATION_FAILED, INVALID_FORMAT, MISSING_REQUIRED_FIELD -> HttpStatus.BAD_REQUEST;
             case BUSINESS_RULE_VIOLATION, IMMUTABLE_RECORD -> HttpStatus.UNPROCESSABLE_ENTITY;
-            case IDEMPOTENCY_KEY_REUSED -> HttpStatus.CONFLICT;
+            case IDEMPOTENCY_KEY_REUSED, INSUFFICIENT_STOCK -> HttpStatus.CONFLICT;
             case BRANCH_CONTEXT_REQUIRED -> HttpStatus.BAD_REQUEST;
             case BRANCH_ACCESS_DENIED -> HttpStatus.FORBIDDEN;
             case UNAUTHORIZED, INVALID_CREDENTIALS, TOKEN_EXPIRED -> HttpStatus.UNAUTHORIZED;

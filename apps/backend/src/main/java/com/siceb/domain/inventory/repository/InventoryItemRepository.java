@@ -2,6 +2,7 @@ package com.siceb.domain.inventory.repository;
 
 import com.siceb.domain.inventory.model.InventoryItem;
 import com.siceb.domain.inventory.model.InventoryItemId;
+import com.siceb.domain.inventory.model.StockStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,7 +20,7 @@ public interface InventoryItemRepository extends JpaRepository<InventoryItem, In
 
     Page<InventoryItem> findByBranchId(UUID branchId, Pageable pageable);
 
-    Page<InventoryItem> findByBranchIdAndStockStatus(UUID branchId, String stockStatus, Pageable pageable);
+    Page<InventoryItem> findByBranchIdAndStockStatus(UUID branchId, StockStatus stockStatus, Pageable pageable);
 
     Page<InventoryItem> findByBranchIdAndCategory(UUID branchId, String category, Pageable pageable);
 
