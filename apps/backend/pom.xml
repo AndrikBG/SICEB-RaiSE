@@ -60,7 +60,7 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <scope>runtime</scope>
+            <!-- compile scope needed: RealtimeEventPublisher uses PGConnection for pg_notify LISTEN -->
         </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>

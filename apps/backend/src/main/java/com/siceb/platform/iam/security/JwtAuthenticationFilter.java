@@ -66,30 +66,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            @SuppressWarnings("unchecked")
-            Collection<String> permissions = claims.get("permissions", Collection.class);
-            List<SimpleGrantedAuthority> authorities = permissions != null
-                    ? permissions.stream().map(SimpleGrantedAuthority::new).collect(Collectors.toList())
-                    : List.of();
+            SicebUserPrincipal principal = JwtClaimsPrincipalMapper.fromClaims(claims);
 
-            @SuppressWarnings("unchecked")
-            Collection<String> branchAssignments = claims.get("branchAssignments", Collection.class);
-
-            SicebUserPrincipal principal = new SicebUserPrincipal(
-                    UUID.fromString(claims.getSubject()),
-                    claims.get("username", String.class),
-                    claims.get("fullName", String.class),
-                    claims.get("role", String.class),
-                    claims.get("residencyLevel", String.class),
-                    claims.get("activeBranchId", String.class) != null
-                            ? UUID.fromString(claims.get("activeBranchId", String.class))
-                            : null,
-                    permissions != null ? new HashSet<>(permissions) : Set.of(),
-                    branchAssignments != null ? new HashSet<>(branchAssignments) : Set.of(),
-                    claims.get("staffId", String.class) != null
-                            ? UUID.fromString(claims.get("staffId", String.class))
-                            : null
-            );
+            List<SimpleGrantedAuthority> authorities = principal.permissions().stream()
+                    .map(SimpleGrantedAuthority::new)
+                    .collect(Collectors.toList());
 
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(principal, null, authorities);
