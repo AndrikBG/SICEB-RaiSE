@@ -1,0 +1,78 @@
+artifact_type: story-design
+version: 1
+skill: rai-story-design
+created: '2026-04-11T07:00:00Z'
+story: 'S4.1'
+epic: 'E4'
+content:
+  summary: 'Enable branch registration with automated onboarding and mid-session context switching via JWT re-issuance, unblocking multi-branch operations for the clinic network.'
+  complexity: moderate
+  acceptance_criteria:
+    - id: AC1
+      description: 'POST /api/branches creates branch with unique name validation (201 or 409)'
+      verifiable: true
+    - id: AC2
+      description: '5-step onboarding runs automatically, each step idempotent, total < 1 hour (ESC-01)'
+      verifiable: true
+    - id: AC3
+      description: 'POST /api/session/branch returns new JWT with updated activeBranchId in < 3 seconds (ESC-03)'
+      verifiable: true
+    - id: AC4
+      description: 'Unassigned or deactivated branch switch returns 403'
+      verifiable: true
+    - id: AC5
+      description: 'branch:manage and branch:read permissions seeded and linked to system roles'
+      verifiable: true
+    - id: AC6
+      description: 'RLS enforced on branch_onboarding_status and branch_service_catalog'
+      verifiable: true
+    - id: AC7
+      description: 'Audit events emitted for registration, deactivation, and context switch'
+      verifiable: true
+  integration_points:
+    - module: 'platform.branch.entity'
+      change_type: modification
+      files: ['apps/backend/src/main/java/com/siceb/platform/branch/entity/Branch.java']
+    - module: 'platform.branch.repository'
+      change_type: new
+      files: ['apps/backend/src/main/java/com/siceb/platform/branch/repository/BranchRepository.java']
+    - module: 'platform.branch.service'
+      change_type: new
+      files:
+        - 'apps/backend/src/main/java/com/siceb/platform/branch/service/BranchRegistrationService.java'
+        - 'apps/backend/src/main/java/com/siceb/platform/branch/service/BranchOnboardingOrchestrator.java'
+        - 'apps/backend/src/main/java/com/siceb/platform/branch/service/BranchContextService.java'
+    - module: 'api'
+      change_type: new
+      files: ['apps/backend/src/main/java/com/siceb/api/BranchController.java']
+    - module: 'platform.iam.service'
+      change_type: modification
+      files: ['apps/backend/src/main/java/com/siceb/platform/iam/service/AuthenticationService.java']
+    - module: 'platform.iam.entity'
+      change_type: modification
+      files: ['apps/backend/src/main/java/com/siceb/platform/iam/entity/User.java']
+    - module: 'db.migration'
+      change_type: new
+      files:
+        - 'apps/backend/src/main/resources/db/migration/V015__extend_branch_schema.sql'
+        - 'apps/backend/src/main/resources/db/migration/V016__seed_branch_permissions.sql'
+        - 'apps/backend/src/main/resources/db/migration/R__rls_policies.sql'
+  decisions:
+    - id: D-044
+      choice: 'Onboarding steps 1 and 4 are stubs in S4.1 (inventory tables not created yet)'
+      rationale: 'S4.2 creates inventory schema; avoids circular dependency or premature table creation'
+      alternatives_considered: ['Block S4.1 on S4.2', 'Create empty partitioned tables now']
+    - id: D-045
+      choice: 'last_active_branch_id column on users table'
+      rationale: 'Single column, simple query, matches US-074 remember-last-branch requirement'
+      alternatives_considered: ['Separate key-value preferences table']
+    - id: D-046
+      choice: 'Context switch returns access token in body + refresh token in HttpOnly cookie'
+      rationale: 'Consistent with existing auth flow; PWA stores access token in memory'
+      alternatives_considered: ['Cookie-only response', 'Body-only response']
+refs:
+  epic_scope: 'work/epics/e4-multi-branch-inventory/scope.md'
+  us_071: 'docs/Requirements/US/US-071_register_branch.md'
+  us_074: 'docs/Requirements/US/US-074_select_active_branch.md'
+  phase_plan: 'docs/ADD/implementation/phase4-inventory.md'
+metadata: {}
