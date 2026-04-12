@@ -1,0 +1,64 @@
+server:
+  port: ${API_PORT:8080}
+
+spring:
+  application:
+    name: siceb-api
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/siceb}${DB_SSL_PARAMS:}
+    username: ${DB_USER:siceb}
+    password: ${DB_PASSWORD:siceb_dev_password}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:10}
+      minimum-idle: 2
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 900000
+      leak-detection-threshold: 30000
+      pool-name: siceb-pool
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+        tenant_identifier_resolver: com.siceb.platform.branch.TenantConnectionInterceptor
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /docs
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,readiness,liveness,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+
+cors:
+  allowed-origins: ${CORS_ORIGINS:http://localhost:5173}
+
+jwt:
+  secret: ${JWT_SECRET:dev-secret-key-must-be-at-least-256-bits-long-for-hs256-algorithm-to-work}
+  access-expiration-ms: ${JWT_ACCESS_EXPIRATION_MS:900000}
+  refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000}
+  cookie-secure: ${JWT_COOKIE_SECURE:false}
+
+logging:
+  level:
+    root: INFO
+    com.siceb: DEBUG
+  pattern:
+    console: "%d{ISO8601} [%thread] %-5level %logger{36} - %msg%n"

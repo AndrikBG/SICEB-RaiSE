@@ -1,0 +1,69 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-siceb}
+      POSTGRES_USER: ${DB_USER:-siceb}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-siceb_dev_password}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/${DB_NAME:-siceb}
+      DB_USER: ${DB_USER:-siceb}
+      DB_PASSWORD: ${DB_PASSWORD:-siceb_dev_password}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-key-must-be-at-least-256-bits-long-for-hs256}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+      API_PORT: 8080
+    ports:
+      - "${API_PORT:-8080}:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  pwa:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+    environment:
+      VITE_API_URL: http://localhost:${API_PORT:-8080}
+    ports:
+      - "${PWA_PORT:-5173}:5173"
+    volumes:
+      - ./apps/frontend/src:/app/src
+    depends_on:
+      - api
+
+  # SonarQube local para análisis (no arranca con "docker compose up" por defecto)
+  # "community" = última Community Build; "lts-community" = ramal LTS (más antiguo, estable)
+  # Si al cambiar de imagen falla el arranque (H2 / sonar.mv.db), borra solo el volumen
+  # sonarqube_data: docker compose --profile sonar rm -sf sonarqube && docker volume rm <proyecto>_sonarqube_data
+  sonarqube:
+    image: sonarqube:community
+    profiles:
+      - sonar
+    ports:
+      - "${SONAR_PORT:-9000}:9000"
+    environment:
+      SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: "true"
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+
+volumes:
+  pgdata:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:

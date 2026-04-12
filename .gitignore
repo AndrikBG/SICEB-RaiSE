@@ -1,0 +1,29 @@
+# Build artifacts
+apps/backend/target/
+apps/frontend/node_modules/
+apps/frontend/dist/
+apps/frontend/dev-dist/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.sw?
+.DS_Store
+
+# Environment / secrets
+.env
+.env.local
+
+# Logs
+*.log
+
+# OS
+Thumbs.db
+
+# RaiSE personal data (patterns, telemetry, session state)
+.raise/rai/personal/
+.raise/rai/memory/
+
+# Claude Code local config
+CLAUDE.local.md
