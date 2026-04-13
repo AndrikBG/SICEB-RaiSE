@@ -1,0 +1,75 @@
+artifact_type: story-design
+version: 1
+skill: rai-story-design
+created: '2026-04-13T10:50:00Z'
+story: 'S4.3'
+epic: 'E4'
+content:
+  summary: >
+    Temporal effective-date tariff management with immutable history.
+    Enables pricing configuration per service per branch, completing
+    M2 (Core Backend) and unblocking S4.4 (PWA views).
+  complexity: moderate
+  acceptance_criteria:
+    - id: AC1
+      description: 'service_tariffs table with RLS, UNIQUE(service_id, branch_id, effective_from), admin_reporting grants'
+      verifiable: true
+    - id: AC2
+      description: 'tariff:read permission seeded and granted to appropriate roles'
+      verifiable: true
+    - id: AC3
+      description: 'CreateTariff validates non-negative DECIMAL(19,4) price, rejects past effective dates'
+      verifiable: true
+    - id: AC4
+      description: 'Active tariff resolved as MAX(effective_from) <= NOW() with multi-row temporal data'
+      verifiable: true
+    - id: AC5
+      description: 'UpdateTariff creates new row with future effective_from, original immutable'
+      verifiable: true
+  integration_points:
+    - module: 'db.migration'
+      change_type: new
+      files: ['apps/backend/src/main/resources/db/migration/V018__create_tariff_schema.sql']
+    - module: 'db.migration'
+      change_type: modification
+      files: ['apps/backend/src/main/resources/db/migration/R__rls_policies.sql']
+    - module: 'domain.billing.model'
+      change_type: new
+      files: ['apps/backend/src/main/java/com/siceb/domain/billing/model/ServiceTariff.java']
+    - module: 'domain.billing.repository'
+      change_type: new
+      files: ['apps/backend/src/main/java/com/siceb/domain/billing/repository/TariffRepository.java']
+    - module: 'domain.billing.service'
+      change_type: new
+      files: ['apps/backend/src/main/java/com/siceb/domain/billing/service/TariffManagementService.java']
+    - module: 'domain.billing.exception'
+      change_type: new
+      files: ['apps/backend/src/main/java/com/siceb/domain/billing/exception/TariffException.java']
+    - module: 'api'
+      change_type: new
+      files: ['apps/backend/src/main/java/com/siceb/api/TariffController.java']
+    - module: 'test.domain.billing'
+      change_type: new
+      files: ['apps/backend/src/test/java/com/siceb/domain/billing/TariffIntegrationTest.java']
+  decisions:
+    - id: D1
+      choice: 'Place tariff in domain.billing package'
+      rationale: 'Package stub exists (IC-01 from Phase 1); tariff is billings first concrete component'
+      alternatives_considered: ['domain.tariff (unnecessary new package)']
+    - id: D2
+      choice: 'branchId from JWT principal, not request body'
+      rationale: 'Consistent with InventoryController pattern; RLS alignment'
+      alternatives_considered: ['Accept branchId in request body']
+    - id: D3
+      choice: 'No partitioning on service_tariffs'
+      rationale: 'Low data volume; partition overhead unjustified'
+      alternatives_considered: ['Partition by branch_id like inventory tables']
+    - id: D4
+      choice: 'Search via JOIN to branch_service_catalog'
+      rationale: 'Service name lives in catalog; avoid denormalization'
+      alternatives_considered: ['Denormalize service_name into tariff table']
+refs:
+  epic_scope: 'work/epics/e4-multi-branch-inventory/scope.md'
+  design_decisions: 'D-042, D-043'
+  activities: 'A4.4'
+metadata: {}
