@@ -84,7 +84,7 @@ S4.1 unblocks everything. S4.2 is critical path and highest risk (partitioning, 
 - [x] StockMaterializationTrigger materializes stock transactionally
 - [x] pg_notify → STOMP push delivers inventory changes to subscribed clients
 - [x] WebSocket JWT auth rejects unauthorized subscriptions
-- [ ] Tariff CRUD with effective-date resolution working
+- [x] Tariff CRUD with effective-date resolution working
 - [x] Partitioning validated: queries use partition pruning (EXPLAIN ANALYZE)
 - **Demo:** Increment stock via API → see materialized stock → receive WebSocket event → query tariff
 
@@ -111,14 +111,14 @@ S4.1 unblocks everything. S4.2 is critical path and highest risk (partitioning, 
 |-------|--------|--------|---------|-----------|-------|
 | S4.1 | Done | `story/s4.1/branch-management` | 2026-04-11 | 2026-04-12 | 5 tasks, 110 tests, 0.83x velocity |
 | S4.2 | Done | `story/s4.2/inventory-cqrs-realtime` | 2026-04-12 | 2026-04-12 | 7 tasks, 180 tests, 0.89x velocity |
-| S4.3 | Pending | — | — | — | |
+| S4.3 | Done | `story/s4.3/tariff-configuration` | 2026-04-13 | 2026-04-13 | 3 tasks, 202 tests, 1.11x velocity |
 | S4.4 | Pending | — | — | — | |
 | S4.5 | Pending | — | — | — | |
 
 | Milestone | Status | Verified |
 |-----------|--------|----------|
 | M1: Walking Skeleton | Done | 2026-04-12 — all AC verified via Docker |
-| M2: Core Backend | Pending | — |
+| M2: Core Backend | Done | 2026-04-13 — tariff CRUD completes backend surface |
 | M3: E2E Integration | Pending | — |
 | M4: Epic Complete | Pending | — |
 
