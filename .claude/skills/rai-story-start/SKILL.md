@@ -1,9 +1,13 @@
 ---
-description: 'Initialize a story with verified context, branch, and scope commit.
-  Use at the beginning of story work to ensure proper setup and traceability from
-  the start.
-
-  '
+allowed-tools:
+- Read
+- Edit
+- Write
+- Grep
+- Glob
+- Bash(rai:*)
+- Bash(git:*)
+description: Create story branch and scope commit. Use to begin story work.
 license: MIT
 metadata:
   raise.adaptable: 'true'
@@ -130,7 +134,7 @@ rai backlog transition {story_key} in_progress
 | Condition | Action |
 |-----------|--------|
 | Story has ticket | Transition to `in_progress` |
-| No ticket found | Skip (not all stories are tracked externally) |
+| No ticket found | Skip backlog transition (not all stories are tracked externally) |
 | Transition fails | Log warning and continue — backlog errors are **non-blocking** for lifecycle |
 
 <if-blocked>

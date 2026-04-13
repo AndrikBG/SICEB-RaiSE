@@ -1,8 +1,12 @@
 ---
-description: 'Safe MCP server removal with adapter dependency checking. Shows registered
-  servers, warns about references, deletes config.
-
-  '
+allowed-tools:
+- Read
+- Edit
+- Write
+- Grep
+- Glob
+- Bash(rai:*)
+description: Remove an MCP server with dependency checking. Use to unregister a server.
 license: MIT
 metadata:
   raise.adaptable: 'true'

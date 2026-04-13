@@ -1,10 +1,13 @@
 ---
-description: 'Conduct epistemologically rigorous research to inform decisions. Use
-  before ADRs, when evaluating competing approaches, entering unfamiliar domains,
-  or resolving parking lot items. Produces evidence catalogs with triangulated claims
-  and actionable recommendations.
-
-  '
+allowed-tools:
+- Read
+- Grep
+- Glob
+- Bash(ddgr:*)
+- WebFetch
+- WebSearch
+description: Research with triangulated evidence to inform decisions. Use before ADRs
+  or evaluations.
 license: MIT
 metadata:
   raise.adaptable: 'true'

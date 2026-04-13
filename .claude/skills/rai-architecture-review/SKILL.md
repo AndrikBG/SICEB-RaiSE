@@ -1,16 +1,15 @@
 ---
-description: 'Evaluate design proportionality and necessity using Beck''s four rules.
-  Catches what correctness gates miss: over-engineering, orphaned abstractions, speculative
-  generality, and accumulated complexity. Parametrized for story (local) and epic
-  (systemic) scope.
-
-  '
+allowed-tools:
+- Read
+- Grep
+- Glob
+description: Evaluate design proportionality using Beck's four rules. Use after implementation.
 license: MIT
 metadata:
   raise.frequency: on-demand
   raise.prerequisites: story-implement (story scope), last story complete (epic scope)
   raise.version: 1.0.0
-  raise.visibility: internal
+  raise.visibility: public
   raise.work_cycle: story, epic
 name: rai-architecture-review
 ---
@@ -39,7 +38,21 @@ Evaluate whether code is **necessary and proportional** using Beck's four rules 
 
 ## Steps
 
-### Step 1: Identify Scope and Changed Files
+### Step 1: Load Design Context & Patterns
+
+Before reviewing code, load what the design intended and what the codebase has learned:
+
+1. **Read the design doc** (`design.md` or `scope.md`) — what was the intended approach?
+2. **Query the knowledge graph** for patterns in affected modules:
+   ```bash
+   rai graph query "patterns for {affected_modules}" --types pattern
+   rai pattern list --context "{module_keywords}"
+   ```
+3. **Load established patterns** (PAT-E-*) — these are proven solutions. Deviations need justification.
+
+This context informs every subsequent step: you can't judge proportionality without knowing intent, and you can't catch regressions without knowing established patterns.
+
+### Step 2: Identify Scope and Changed Files
 
 Detect the project language and filter by appropriate extensions:
 
@@ -57,7 +70,7 @@ Replace `<extensions>` with language-appropriate patterns (e.g., `'*.py' '*.pyi'
 
 Read every changed file and the design doc. You cannot judge proportionality without intent context.
 
-### Step 2: Necessity Audit (YAGNI — Beck Rule 4)
+### Step 3: Necessity Audit (YAGNI — Beck Rule 4)
 
 | # | Heuristic | Red Flag |
 |---|-----------|----------|
@@ -69,7 +82,7 @@ Read every changed file and the design doc. You cannot judge proportionality wit
 
 When a heuristic triggers, check: "Does the design doc justify this?" If yes, note as Observation.
 
-### Step 3: Proportionality Audit (KISS — Beck Rules 2+4)
+### Step 4: Proportionality Audit (KISS — Beck Rules 2+4)
 
 | # | Heuristic | Red Flag |
 |---|-----------|----------|
@@ -77,7 +90,7 @@ When a heuristic triggers, check: "Does the design doc justify this?" If yes, no
 | H7 | Abstraction-to-LOC Ratio | More scaffolding than logic |
 | H8 | Configuration Over Convention | Configurable with only one valid value in practice |
 
-### Step 4: Duplication & Responsibility (Beck Rules 2-3)
+### Step 5: Duplication & Responsibility (Beck Rules 2-3)
 
 | # | Heuristic | Red Flag |
 |---|-----------|----------|
@@ -86,7 +99,7 @@ When a heuristic triggers, check: "Does the design doc justify this?" If yes, no
 | H11 | Change Reason Count | Module changes for >1 unrelated reason |
 | H12 | Import Fan-In | File imports from 5+ distinct packages for one function |
 
-### Step 5: Systemic Audit (Epic Scope Only)
+### Step 6: Systemic Audit (Epic Scope Only)
 
 Skip for story scope. Cross-module heuristics:
 
@@ -97,7 +110,21 @@ Skip for story scope. Cross-module heuristics:
 | H15 | Cyclic Dependencies | Circular import paths between modules |
 | H16 | Shotgun Surgery | One logical change touches 5+ files across 3+ directories |
 
-### Step 6: Present Findings
+### Step 7: Lean Compliance Audit
+
+Verify the implementation follows the lean principles established in design:
+
+| # | Check | Red Flag |
+|---|-------|----------|
+| L1 | **MVP delivered** | Implementation exceeds what design specified — gold-plating |
+| L2 | **Design followed** | Implementation diverges from design without documented ADR |
+| L3 | **Pattern compliance** | Known patterns (PAT-E-*) exist for this problem but weren't used |
+| L4 | **No speculative code** | Features built for hypothetical future requirements (YAGNI) |
+| L5 | **Simplest approach** | A simpler implementation would achieve the same outcome (KISS) |
+
+For each L-finding: cite the pattern or design decision that was violated.
+
+### Step 8: Present Findings
 
 ```markdown
 ## Architecture Review: {id} (scope: {story|epic})
@@ -122,10 +149,12 @@ Every finding: specific file:line, heuristic ID, proportionality concern, concre
 
 ## Quality Checklist
 
+- [ ] Design doc and graph patterns loaded before reviewing (Step 1)
 - [ ] Project language detected before filtering files
 - [ ] All changed files for detected language read before reviewing
-- [ ] Design doc loaded for intent context
-- [ ] Every finding cites specific file:line and heuristic ID (H1-H16)
+- [ ] Every finding cites specific file:line and heuristic ID (H1-H16, L1-L5)
+- [ ] Lean compliance verified: MVP, pattern adherence, no gold-plating
+- [ ] Known patterns (PAT-E-*) checked against implementation
 - [ ] Questions ratio >30% of findings (humility signal)
 - [ ] "No issues found" is a valid outcome — do not invent findings
 

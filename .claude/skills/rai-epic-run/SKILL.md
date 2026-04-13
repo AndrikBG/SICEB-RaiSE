@@ -1,9 +1,13 @@
 ---
-description: 'Execute epic lifecycle phases (start → design → AR → plan → close),
-  pausing at story iteration for human-driven /rai-story-run execution. Resumes from
-  last completed phase. Delegation profile controls pause behavior at natural gates.
-
-  '
+allowed-tools:
+- Read
+- Grep
+- Glob
+- Bash
+- Agent
+- Skill
+description: Run the full epic lifecycle with delegation gates. Use to orchestrate
+  an epic.
 license: MIT
 metadata:
   raise.adaptable: 'true'
@@ -205,6 +209,6 @@ All phases complete. Epic merged.
 - Epic skills: `/rai-epic-start`, `/rai-epic-design`, `/rai-architecture-review`, `/rai-epic-plan`, `/rai-epic-close`
 - Story orchestrator: `/rai-story-run` (S325.6)
 - Delegation: `~/.rai/developer.yaml`, S325.2
-- BacklogHook: S325.4 (fires on `rai signal emit-work` in start/close)
+- BacklogHook: S325.4
 - Design: `s325.7-design.md` (decisions D1-D2-D3-D4)
 - F5 constraint & checkpoint protocol: E353 (ADR-043), S353.2, S353.3

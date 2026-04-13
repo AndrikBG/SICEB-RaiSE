@@ -1,9 +1,13 @@
 ---
-description: 'Guide greenfield project setup through conversation. Fills governance
-  templates with project-specific content and builds the knowledge graph. Use after
-  rai init on a new project.
-
-  '
+allowed-tools:
+- Read
+- Edit
+- Write
+- Grep
+- Glob
+- Bash(rai:*)
+description: Set up governance for a new project. Use after rai init on a greenfield
+  project.
 license: MIT
 metadata:
   raise.adaptable: 'true'
@@ -82,7 +86,16 @@ Write all docs following parser contracts exactly. Graph parsers use regex — f
 - `guardrails.md`: YAML frontmatter `type: guardrails`. Table with `| ID | Level | Guardrail | Verification | Derived from |`. ID format: `{level}-{category}-{NNN}`
 - `backlog.md`: Header `# Backlog: {name}`. Epic rows `| E{N} | ... |`
 - `system-context.md`: External interfaces table
-- `system-design.md`: Components table with responsibility and technology
+- `system-design.md`: YAML frontmatter `type: architecture_design`. `layers` must be a list of dicts — each with `name`, `modules` (list), and optionally `description`. **NEVER write layers as plain strings** (causes `AttributeError: 'str' object has no attribute 'get'` in graph build). Example:
+  ```yaml
+  layers:
+    - name: frontend
+      modules: [ui, components]
+      description: "User interface layer"
+    - name: backend
+      modules: [api, services]
+      description: "Business logic layer"
+  ```
 
 Update `.raise/manifest.yaml` with branch configuration.
 

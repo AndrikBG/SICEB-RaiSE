@@ -1,10 +1,13 @@
 ---
-description: 'Chain the full story lifecycle (start → design → plan → implement →
-  architecture review → quality review → review → close) in one invocation. Resumes
-  from last completed phase using git-derived artifact detection. Delegation profile
-  controls pause behavior.
-
-  '
+allowed-tools:
+- Read
+- Grep
+- Glob
+- Bash
+- Agent
+- Skill
+description: Run the full story lifecycle with delegation gates. Use to orchestrate
+  a story.
 license: MIT
 metadata:
   raise.adaptable: 'true'
@@ -25,7 +28,7 @@ metadata:
 
     '
   raise.prerequisites: ''
-  raise.version: 2.0.0
+  raise.version: 2.1.0
   raise.visibility: public
   raise.work_cycle: story
 name: rai-story-run
@@ -51,7 +54,7 @@ Execute the full story lifecycle in one invocation, pausing only at delegation g
 
 ## Steps
 
-### Step 0: Detect Phase
+### Step 0: Detect Phase & Story Type
 
 Resolve the epic and story paths from `story_id`. Check artifacts in **reverse order** — take the most advanced phase:
 
@@ -64,10 +67,20 @@ Resolve the epic and story paths from `story_id`. Check artifacts in **reverse o
 | 1 | story branch exists (`story/s{N}.{M}/*`) | **start** (branch only, no artifacts) |
 | 0 | (nothing) | **start** (from scratch) |
 
-Present: "Phase detection: resuming at **{phase}** (found: {artifact})" or "Starting fresh — no artifacts found."
+**Detect story type** from the `type` field in `stories/s{N}.{M}-story.md` frontmatter:
+
+| Type | Meaning | Phases skipped |
+|------|---------|----------------|
+| `code` (default) | Produces source code | None — full 8-phase chain |
+| `docs` | Documentation, guardrails, governance artifacts | AR (phase 5), QR (phase 6) |
+| `analysis` | Research, audit, assessment — no deliverable code | AR (phase 5), QR (phase 6) |
+
+If `type` is missing or unrecognized, default to `code`.
+
+Present: "Phase detection: resuming at **{phase}** (found: {artifact}), type: **{type}**" or "Starting fresh — no artifacts found."
 
 <verification>
-Phase identified. Epic path resolved.
+Phase identified. Epic path resolved. Story type detected.
 </verification>
 
 ### Step 1: Resolve Delegation
@@ -123,16 +136,18 @@ Rules for the completion banner:
 
 **Chain order:**
 
-| Phase | Skill | Execution | Gate after? |
-|:-----:|-------|:---------:|:-----------:|
-| 1 | `/rai-story-start {story_id}` | **fork** | — |
-| 2 | `/rai-story-design {story_id}` | **fork** | POST-DESIGN |
-| 3 | `/rai-story-plan {story_id}` | **fork** | — |
-| 4 | `/rai-story-implement {story_id}` | **fork** | POST-IMPLEMENT |
-| 5 | `/rai-architecture-review {story_id} story` | **fork** | POST-AR |
-| 6 | `/rai-quality-review {story_id}` | **fork** | POST-QR |
-| 7 | `/rai-story-review {story_id}` | **fork** | — |
-| 8 | `/rai-story-close {story_id}` | **fork** | — |
+| Phase | Skill | Execution | Gate after? | Skip for docs/analysis? |
+|:-----:|-------|:---------:|:-----------:|:-----------------------:|
+| 1 | `/rai-story-start {story_id}` | **fork** | — | no |
+| 2 | `/rai-story-design {story_id}` | **fork** | POST-DESIGN | no |
+| 3 | `/rai-story-plan {story_id}` | **fork** | — | no |
+| 4 | `/rai-story-implement {story_id}` | **fork** | POST-IMPLEMENT | no |
+| 5 | `/rai-architecture-review {story_id} story` | **fork** | POST-AR | **yes** |
+| 6 | `/rai-quality-review {story_id}` | **fork** | POST-QR | **yes** |
+| 7 | `/rai-story-review {story_id}` | **fork** | — | no |
+| 8 | `/rai-story-close {story_id}` | **fork** | — | no |
+
+**Story type skipping:** When `type` is `docs` or `analysis`, skip phases 5 (AR) and 6 (QR) entirely. Present: "Skipping phase {N} ({skill_name}) — story type is **{type}**, no code to review." Then continue to the next applicable phase.
 
 **All phases fork.** The orchestrator is a pure coordinator — it never executes skill logic directly. This keeps the terminal output clean (subagent output is contained) and the orchestrator context minimal.
 
@@ -188,6 +203,23 @@ ARGUMENTS: {story_id}
 - The orchestrator stays thin — it only reads summaries and checks for artifacts between forks
 - A skill invoked through fork must produce the same output as when invoked standalone
 
+**Close phase (phase 8) guardrails — MANDATORY in close agent prompt:**
+
+The close agent MUST receive these explicit constraints in its prompt, in addition to the SKILL.md:
+
+```
+## Scope Constraints (CRITICAL — close is merge-only)
+- ONLY: merge story branch, update epic scope.md, delete story branch, emit signals
+- NEVER edit source code, skill files, config files, or governance docs
+- NEVER create "fix" or "refactor" commits — report issues, do not repair them
+- NEVER delete directories, worktrees, or files outside the story branch
+- NEVER revert or modify commits already on the dev branch
+- Conflict resolution: resolve ONLY the conflicting hunks mechanically — do not audit or "correct" surrounding code
+- If something looks wrong, return it as a finding in your summary — do not act on it
+```
+
+This guardrail exists because close agents have historically rationalized unauthorized changes (removing fields, deleting directories) during conflict resolution. The close skill's "Scope Constraints" section is authoritative — these prompt guardrails reinforce it.
+
 <verification>
 Each skill's SKILL.md was loaded and all its steps executed before proceeding.
 </verification>
@@ -213,6 +245,8 @@ After **phase 2 (design)**, **phase 4 (implement)**, **phase 5 (AR)**, and **pha
 
 If AR verdict is SIMPLIFY or QR verdict is FAIL, STOP regardless of delegation level. Fixes must be applied before proceeding.
 
+For `docs`/`analysis` stories, phases 5 and 6 are skipped, so their delegation gates don't apply.
+
 <verification>
 Gate applied. Approval received (REVIEW) or notification shown (NOTIFY/AUTO).
 </verification>
@@ -226,6 +260,7 @@ After all phases complete, present:
 
 **Phases:** {start_phase} → close ({N} phases executed)
 **Delegation:** {level}
+**Type:** {code|docs|analysis}
 **Result:** Merged to `{parent_branch}` (`{merge_commit_hash}`)
 
 ### Artifacts
@@ -261,26 +296,27 @@ All phases complete. Story merged and branch cleaned up.
 | All story artifacts | `work/epics/e{N}-{name}/stories/` |
 | Merge commit | Parent branch (epic or dev) |
 | Patterns | `.raise/rai/memory/patterns.jsonl` |
-| Calibration | Via `rai signal emit-calibration` |
 | Next | Next story or `/rai-epic-close` |
 
 ## Quality Checklist
 
 - [ ] Phase detection checked in reverse order (most advanced first)
+- [ ] Story type detected from frontmatter (`code`/`docs`/`analysis`)
 - [ ] Delegation resolved from profile before starting chain
-- [ ] All 8 phases spawn Agent tool subagent with full SKILL.md as prompt
+- [ ] All applicable phases spawn Agent tool subagent with full SKILL.md as prompt
+- [ ] AR and QR skipped for `docs`/`analysis` stories (with message)
 - [ ] Each subagent gets fresh context — no conversation history passed
 - [ ] Artifact-producing forks verified by checking file on disk
 - [ ] AR/QR verdicts read from agent return value
 - [ ] Gates applied at post-design, post-implement, post-AR, and post-QR (in main thread)
 - [ ] Failure stops immediately — no cascading to next phase
 - [ ] NEVER create a state file — phase detection is git-derived only
-- [ ] NEVER skip a skill in the chain (even if developer says "just close it")
+- [ ] NEVER skip a skill in the chain unless story type allows it
 - [ ] NEVER pass conversation context to forked subagent — only disk artifacts + SKILL.md
 
 ## References
 
 - Skills: `/rai-story-start`, `/rai-story-design`, `/rai-story-plan`, `/rai-story-implement`, `/rai-architecture-review`, `/rai-quality-review`, `/rai-story-review`, `/rai-story-close`
 - Delegation: `~/.rai/developer.yaml`, S325.2
-- BacklogHook: S325.4 (fires on `rai signal emit-work` in start/close)
+- BacklogHook: S325.4
 - Design: `s325.6-design.md` (decisions D1-D2-D3)

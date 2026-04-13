@@ -1,15 +1,15 @@
 ---
-description: 'Critical code review with external auditor perspective. Catches what
-  linters, type checkers, and coverage gates miss: semantic bugs, type lies, test
-  muda, API design issues, and security concerns.
-
-  '
+allowed-tools:
+- Read
+- Grep
+- Glob
+description: Audit code for semantic bugs, type lies, and test muda. Use after implementation.
 license: MIT
 metadata:
   raise.frequency: on-demand
   raise.prerequisites: story-implement
   raise.version: 1.0.0
-  raise.visibility: internal
+  raise.visibility: public
   raise.work_cycle: story
 name: rai-quality-review
 ---
@@ -80,7 +80,20 @@ Replace `<extensions>` with language-appropriate patterns from Step 0 (e.g., `'*
 
 Read every changed file. You cannot review code you haven't read.
 
-### Step 2: Semantic Correctness Audit
+### Step 2: Load Patterns & Design Context
+
+Before auditing for bugs, understand what patterns should have been followed:
+
+1. **Query the knowledge graph** for known patterns in affected modules:
+   ```bash
+   rai graph query "patterns for {affected_modules}" --types pattern
+   ```
+2. **Read the design doc** (if exists) — what approach was intended?
+3. **Check established patterns** (PAT-E-*) — deviations from proven patterns are a quality signal.
+
+Pattern awareness prevents false positives (flagging code that follows a deliberate pattern) and catches real issues (code that ignores a pattern established after a past bug).
+
+### Step 3: Semantic Correctness Audit
 
 #### Universal Checks (all languages)
 
@@ -118,7 +131,7 @@ Read every changed file. You cannot review code you haven't read.
 - **Error handling:** Uncaught `Future` errors, missing error handling in `StreamBuilder`
 - **Idioms:** `setState` after dispose, missing `const` constructors, build method side effects
 
-### Step 3: Test Quality Audit
+### Step 4: Test Quality Audit
 
 Apply these heuristics to every test file:
 
@@ -134,7 +147,7 @@ Apply these heuristics to every test file:
 
 Classify: **Muda** (waste, recommend deletion) / **Fragile** (breaks on refactor) / **Valuable** (leave as-is).
 
-### Step 4: API Surface & Security Audit
+### Step 5: API Surface & Security Audit
 
 **API (language-adaptive):**
 
@@ -149,7 +162,7 @@ Classify: **Muda** (waste, recommend deletion) / **Fragile** (breaks on refactor
 
 **Security (universal):** Entry point trust model, input validation at boundaries, dependency justification, no secret exposure in logs/errors.
 
-### Step 5: Present Findings
+### Step 6: Present Findings
 
 ```markdown
 ## Quality Review: {story_id}
@@ -174,9 +187,11 @@ Every finding: specific file:line, WHY it matters, concrete fix suggestion.
 ## Quality Checklist
 
 - [ ] Project language detected (Step 0) before reviewing
+- [ ] Patterns and design context loaded (Step 2) before auditing
 - [ ] All changed files for detected language read before reviewing
 - [ ] Every finding cites specific file:line
 - [ ] Every finding explains WHY (not just WHAT)
+- [ ] Known patterns (PAT-E-*) checked — deviations flagged with justification
 - [ ] Style issues already caught by language-appropriate linters are excluded
 - [ ] Language-specific checks applied from correct section
 - [ ] "No issues found" is a valid outcome — do not invent findings

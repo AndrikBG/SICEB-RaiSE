@@ -1,8 +1,10 @@
 ---
-description: 'Begin a session by loading context bundle, interpreting it, and proposing
-  work. CLI does all data plumbing; skill does inference interpretation.
-
-  '
+allowed-tools:
+- Read
+- Grep
+- Glob
+description: Load context and propose session focus. Use at the start of every working
+  session.
 license: MIT
 metadata:
   raise.adaptable: 'true'
@@ -68,11 +70,12 @@ Loads developer profile, session state, and orientation bundle. If graph unavail
    - Pending decisions or blockers → address first
    - Communication preferences → adapt tone
 
-2. **Check MCP health** (non-blocking):
+2. **Check MCP health** (non-blocking, never alarming):
    - Run `rai mcp list` to detect registered servers
    - If no servers registered: skip silently (no output)
    - If servers found: run `rai mcp health <name>` for each
    - Collect status: healthy count, unhealthy count, total
+   - **If health check fails** (missing module, connection error, etc.): report as "not connected" — never show tracebacks or error details to the user. MCP servers are optional integrations, not critical infrastructure
 
 3. **Propose session focus** from: pending items > current story/phase > deadlines
 
@@ -83,7 +86,7 @@ Loads developer profile, session state, and orientation bundle. If graph unavail
 
 **Context:** [Release →] [Epic] → [Story], [phase]
 **Focus:** [goal]
-**MCP:** [{total} servers, all healthy] or [{total} servers, {unhealthy} unhealthy — run /rai-mcp-status]
+**MCP:** [{total} servers, all healthy] or [{total} servers, {N} not connected — run /rai-mcp-status]
 **Signals:** [any, or "None"]
 ```
 

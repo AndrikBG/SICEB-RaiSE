@@ -1,12 +1,18 @@
 ---
-description: 'Complete an epic with retrospective, metrics capture, and tracking update.
-  No branch merge — epics are logical containers. Story branches merge directly to
-  the development branch during story-close.
-
-  '
+allowed-tools:
+- Read
+- Edit
+- Write
+- Grep
+- Glob
+- Bash(rai:*)
+- Bash(git:*)
+description: Close epic with retrospective, push, and merge request. Use after all
+  stories done.
 license: MIT
 metadata:
   raise.adaptable: 'true'
+  raise.aspects: introspection
   raise.fase: '9'
   raise.frequency: per-epic
   raise.gate: ''
@@ -17,6 +23,15 @@ metadata:
     - dev_branch: string, required, config
 
     '
+  raise.introspection:
+    affected_modules: []
+    context_source: all epic artifacts
+    max_jit_queries: 3
+    max_tier1_queries: 2
+    phase: epic.close
+    tier1_queries:
+    - retrospective patterns for {domain} epics
+    - process improvement patterns from similar epics
   raise.next: ''
   raise.outputs: '- retrospective: file_path, file
 
@@ -24,7 +39,7 @@ metadata:
 
     '
   raise.prerequisites: all stories complete
-  raise.version: 3.0.0
+  raise.version: 3.2.0
   raise.visibility: public
   raise.work_cycle: epic
 name: rai-epic-close
@@ -54,6 +69,14 @@ Complete an epic by conducting a retrospective, tagging the milestone, and updat
 
 ## Steps
 
+### PRIME (mandatory — do not skip)
+
+Before starting Step 1, you MUST execute the PRIME protocol:
+
+1. **Chain read**: Read ALL learning records from this epic's skills (epic-design, epic-plan, and all story records). This provides the aggregate view for the retrospective.
+2. **Graph query**: Execute tier1 queries from this skill's metadata using `rai graph query`. If graph is unavailable, note and continue.
+3. **Present**: Surface retrieved patterns as context. 0 results is valid — not a failure.
+
 ### Step 1: Verify Stories Complete
 
 Check all stories are done in the epic scope document:
@@ -66,6 +89,9 @@ grep -E "^\s*-\s*\[ \]" "work/epics/e{N}-{name}/scope.md"
 |-----------|--------|
 | All stories checked | Continue |
 | Incomplete stories | Complete them first or explicitly descope |
+
+> **JIT**: Before descoping decisions, query graph for completion patterns and prior descoping outcomes
+> → `aspects/introspection.md § JIT Protocol`
 
 <verification>
 All stories marked complete in epic scope.
@@ -91,6 +117,9 @@ Determine which test command to run using this priority chain:
 | Unknown | — | Ask developer |
 
 The table is a **fallback** — `project.test_command` always wins when present.
+
+> **JIT**: Before writing retrospective, query graph for process improvement patterns from similar epics
+> → `aspects/introspection.md § JIT Protocol`
 
 Create retrospective at `work/epics/e{N}-{name}/retrospective.md` using `templates/retrospective.md`. Fill from story retrospectives and git history.
 
@@ -128,18 +157,56 @@ Co-Authored-By: Rai <rai@humansys.ai>"
 Tag created. Retrospective committed.
 </verification>
 
-### Step 4: Update Backlog & Context
+### Step 4: Push and Create Merge Request
 
-1. Mark epic complete in `governance/backlog.md` (status → `✅ Complete`)
-2. Update `CLAUDE.local.md` to reflect completion and next epic
-3. Emit telemetry:
+Push `{dev_branch}` to origin and create a merge request. This is the single MR for the entire epic — all stories were merged locally during `/rai-story-close`.
 
 ```bash
-rai signal emit-work epic E{N} --event complete
+# Push dev with all epic commits
+git push origin {dev_branch}
+
+# Create merge request via glab (dev → main for releases, or just push dev)
+glab mr create \
+  --source-branch {dev_branch} \
+  --target-branch {main_branch} \
+  --title "epic(e{N}): {Epic Name}" \
+  --description "## Epic E{N}: {Epic Name}
+
+### Stories delivered
+- S{N}.1: {name}
+- S{N}.2: {name}
+- ...
+
+### Key changes
+- {summary of deliverables}
+
+### Retrospective
+- {top learnings}
+
+Co-Authored-By: Rai <rai@humansys.ai>" \
+  --no-editor
 ```
 
+Present the MR URL to the developer for review.
+
+| Condition | Action |
+|-----------|--------|
+| MR to main needed | Create MR as above |
+| No release planned | Push dev only, skip MR to main |
+| `glab` not available | Provide the GitLab URL from `git push` output for manual MR creation |
+| Push rejected | `git pull --rebase origin {dev_branch}`, resolve conflicts, push again |
+
 <verification>
-Backlog reflects completion. Local context updated.
+Dev pushed to origin. MR created if targeting main. MR URL presented to developer.
+</verification>
+
+### Step 5: Update Backlog & Context
+
+1. Mark epic complete via CLI:
+   - **If Jira issue exists:** `rai backlog transition {JIRA_KEY} "Done" -a jira`
+   - **If no Jira key:** `rai backlog search "summary ~ '{epic name}'" -a jira` to find it, then transition
+<verification>
+Backlog reflects completion.
 </verification>
 
 ## Output
@@ -148,8 +215,9 @@ Backlog reflects completion. Local context updated.
 |------|-------------|
 | Retrospective | `work/epics/e{N}-{name}/retrospective.md` |
 | Tag | `epic/e{N}-complete` on `{dev_branch}` |
-| Backlog update | `governance/backlog.md` |
-| Context update | `CLAUDE.local.md` |
+| Push | `{dev_branch}` pushed to origin |
+| Merge request | GitLab MR: `{dev_branch}` → `{main_branch}` (if release) |
+| Backlog update | Tracker via `rai backlog` CLI |
 
 ## Quality Checklist
 
@@ -157,13 +225,16 @@ Backlog reflects completion. Local context updated.
 - [ ] Tests pass before closing
 - [ ] Retrospective captures metrics, patterns, and process insights
 - [ ] Epic milestone tagged on `{dev_branch}`
-- [ ] Backlog updated with completion status
+- [ ] Dev pushed to origin with all epic commits
+- [ ] Merge request created if targeting main (epic-level MR, not per story)
+- [ ] Backlog updated via `rai backlog transition` CLI
 - [ ] No epic branch to clean up — epics are logical containers
 - [ ] NEVER close without retrospective — learnings compound across epics
+- [ ] NEVER create per-story MRs — one MR per epic at close time
 
 ## References
 
 - Retrospective template: `templates/retrospective.md`
 - Previous: All `/rai-story-close` completions
-- Backlog: `governance/backlog.md`
+- Backlog: `rai backlog` CLI
 - Next: `/rai-epic-design` for next epic
