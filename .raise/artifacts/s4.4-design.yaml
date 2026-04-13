@@ -1,0 +1,77 @@
+artifact_type: story-design
+version: 1
+skill: rai-story-design
+created: '2026-04-13T15:30:00Z'
+story: 'S4.4'
+epic: 'E4'
+content:
+  summary: >-
+    PWA views for branch management, inventory dashboard, service inventory,
+    and tariff configuration. Integration story consuming S4.1+S4.2+S4.3 APIs
+    with real-time WebSocket updates and branch context switching enhancement.
+  complexity: complex
+  acceptance_criteria:
+    - id: AC1
+      description: 'BranchManagementView at /branches: list, register, deactivate — gated by branch:manage'
+      verifiable: true
+    - id: AC2
+      description: 'InventoryDashboardView at /inventory: paginated grid, filters, search, color-coded status, Excel export, real-time WebSocket updates — gated by inventory:read'
+      verifiable: true
+    - id: AC3
+      description: 'ServiceInventoryView at /inventory/service: pre-filtered to user service, items from other services never rendered — gated by inventory:read_service'
+      verifiable: true
+    - id: AC4
+      description: 'TariffConfigurationView at /tariffs: catalog CRUD with search and price validation — gated by tariff:manage'
+      verifiable: true
+    - id: AC5
+      description: 'Branch switching calls POST /session/branch, stores new JWT, clears IndexedDB cache, reconnects WebSocket'
+      verifiable: true
+  integration_points:
+    - module: lib.branch-api
+      change_type: new
+      files: ['apps/frontend/src/lib/branch-api.ts']
+    - module: lib.tariff-api
+      change_type: new
+      files: ['apps/frontend/src/lib/tariff-api.ts']
+    - module: features.operations.BranchManagementView
+      change_type: new
+      files: ['apps/frontend/src/features/operations/BranchManagementView.tsx']
+    - module: features.operations.InventoryDashboardView
+      change_type: new
+      files: ['apps/frontend/src/features/operations/InventoryDashboardView.tsx']
+    - module: features.operations.ServiceInventoryView
+      change_type: new
+      files: ['apps/frontend/src/features/operations/ServiceInventoryView.tsx']
+    - module: features.operations.TariffConfigurationView
+      change_type: new
+      files: ['apps/frontend/src/features/operations/TariffConfigurationView.tsx']
+    - module: components.layout
+      change_type: modification
+      files: ['apps/frontend/src/components/layout.tsx']
+    - module: App
+      change_type: modification
+      files: ['apps/frontend/src/App.tsx']
+  decisions:
+    - id: D1
+      choice: 'New features/operations/ directory for all 4 views'
+      rationale: 'Logical grouping separate from auth/, admin/, clinical/'
+      alternatives_considered: ['features/admin/ (but inventory is not admin-only)']
+    - id: D2
+      choice: 'Local useState for view state, no new zustand store'
+      rationale: 'Views are independent, no cross-view state sharing needed'
+      alternatives_considered: ['New inventory-store.ts (unnecessary complexity)']
+    - id: D3
+      choice: 'BranchSelector enhanced in-place in layout.tsx'
+      rationale: 'Single-branch users auto-select (existing), multi-branch get full switch flow'
+      alternatives_considered: ['Separate BranchSwitchModal']
+    - id: D4
+      choice: 'ServiceInventoryView as separate component from InventoryDashboardView'
+      rationale: 'Different permissions, different data source, never shows cross-service items'
+      alternatives_considered: ['Single view with mode prop (leaks cross-service data risk)']
+    - id: D5
+      choice: 'zod for client-side form validation'
+      rationale: 'Already in dependencies, consistent with react-hook-form'
+      alternatives_considered: ['Manual validation']
+refs:
+  epic_scope: 'work/epics/e4-multi-branch-inventory/scope.md'
+metadata: {}
