@@ -1,6 +1,7 @@
 package com.siceb.api;
 
 import com.siceb.domain.clinicalcare.exception.ClinicalDomainException;
+import com.siceb.domain.billing.exception.TariffException;
 import com.siceb.domain.inventory.exception.InventoryException;
 import com.siceb.platform.branch.exception.BranchException;
 import com.siceb.platform.consent.service.LfpdpppComplianceTracker;
@@ -66,6 +67,14 @@ public class GlobalExceptionHandler {
         HttpStatus status = mapToHttpStatus(ex.getErrorCode());
         ErrorResponse response = ErrorResponse.of(ex.getErrorCode(), ex.getMessage());
         log.warn("Consent error: {} — {}", ex.getErrorCode(), ex.getMessage());
+        return ResponseEntity.status(status).body(response);
+    }
+
+    @ExceptionHandler(TariffException.class)
+    public ResponseEntity<ErrorResponse> handleTariff(TariffException ex) {
+        HttpStatus status = mapToHttpStatus(ex.getErrorCode());
+        ErrorResponse response = ErrorResponse.of(ex.getErrorCode(), ex.getMessage());
+        log.warn("Tariff error: {} — {}", ex.getErrorCode(), ex.getMessage());
         return ResponseEntity.status(status).body(response);
     }
 
