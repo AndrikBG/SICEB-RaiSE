@@ -15,6 +15,7 @@ import { RoleConfigurationView } from '@/features/admin/RoleConfigurationView';
 import { BranchManagementView } from '@/features/operations/BranchManagementView';
 import { InventoryDashboardView } from '@/features/operations/InventoryDashboardView';
 import { ServiceInventoryView } from '@/features/operations/ServiceInventoryView';
+import { TariffConfigurationView } from '@/features/operations/TariffConfigurationView';
 
 function App() {
   return (
@@ -37,6 +38,7 @@ function App() {
           <Route path="/branches" element={<BranchManagementView />} />
           <Route path="/inventory" element={<InventoryDashboardView />} />
           <Route path="/inventory/service" element={<ServiceInventoryView />} />
+          <Route path="/tariffs" element={<TariffConfigurationView />} />
           <Route path="/admin/users" element={<UserManagementView />} />
           <Route path="/admin/roles" element={<RoleConfigurationView />} />
         </Route>
