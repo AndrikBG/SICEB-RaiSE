@@ -112,14 +112,14 @@ S4.1 unblocks everything. S4.2 is critical path and highest risk (partitioning, 
 | S4.1 | Done | `story/s4.1/branch-management` | 2026-04-11 | 2026-04-12 | 5 tasks, 110 tests, 0.83x velocity |
 | S4.2 | Done | `story/s4.2/inventory-cqrs-realtime` | 2026-04-12 | 2026-04-12 | 7 tasks, 180 tests, 0.89x velocity |
 | S4.3 | Done | `story/s4.3/tariff-configuration` | 2026-04-13 | 2026-04-13 | 3 tasks, 202 tests, 1.11x velocity |
-| S4.4 | Pending | — | — | — | |
+| S4.4 | Done | `story/s4.4/pwa-views` | 2026-04-13 | 2026-04-13 | 5 tasks, 4 views, 1.7x velocity |
 | S4.5 | Pending | — | — | — | |
 
 | Milestone | Status | Verified |
 |-----------|--------|----------|
 | M1: Walking Skeleton | Done | 2026-04-12 — all AC verified via Docker |
 | M2: Core Backend | Done | 2026-04-13 — tariff CRUD completes backend surface |
-| M3: E2E Integration | Pending | — |
+| M3: E2E Integration | Code Complete | Views built, browser E2E pending Docker Compose verification |
 | M4: Epic Complete | Pending | — |
 
 ### Sequencing Risks
