@@ -6,11 +6,21 @@ import { useAuthStore } from '@/stores/auth-store';
 import { RoleAwareRenderer } from '@/components/RoleAwareRenderer';
 import { logout as apiLogout } from '@/lib/auth-api';
 import type { BranchInfo } from '@/lib/auth-api';
+import { branchApi } from '@/lib/branch-api';
+import { scopedCachedEntities } from '@/lib/db';
+import { disconnectWs, connectWs } from '@/lib/ws-client';
 
 const NAV_ITEMS = [
   { path: '/patients', label: 'Pacientes', permission: 'patient:read' },
   { path: '/consultations', label: 'Consultas', permission: 'consultation:create' },
   { path: '/lab', label: 'Laboratorio', permission: 'lab:read' },
+];
+
+const OPS_ITEMS = [
+  { path: '/branches', label: 'Sucursales', permission: 'branch:manage' },
+  { path: '/inventory', label: 'Inventario', permission: 'inventory:read_all' },
+  { path: '/inventory/service', label: 'Mi Inventario', permission: 'inventory:read_service' },
+  { path: '/tariffs', label: 'Tarifas', permission: 'tariff:manage' },
 ];
 
 const ADMIN_ITEMS = [
@@ -25,6 +35,7 @@ export function Layout() {
   const user = useAuthStore((s) => s.user);
   const activeBranch = useAuthStore((s) => s.activeBranch);
   const setActiveBranch = useAuthStore((s) => s.setActiveBranch);
+  const updateToken = useAuthStore((s) => s.updateToken);
   const clearSession = useAuthStore((s) => s.clearSession);
 
   const statusDot = {
@@ -32,6 +43,27 @@ export function Layout() {
     offline: 'bg-red-500',
     reconnecting: 'bg-amber-500',
   }[connectionStatus];
+
+  const [switchError, setSwitchError] = useState('');
+
+  async function handleBranchSwitch(branch: BranchInfo) {
+    if (branch.id === activeBranch?.id) return;
+    const oldBranchId = activeBranch?.id;
+    setSwitchError('');
+    try {
+      const res = await branchApi.switchBranch(branch.id);
+      updateToken(res.data.accessToken);
+      setActiveBranch(branch);
+      if (oldBranchId) {
+        await scopedCachedEntities(oldBranchId).delete();
+      }
+      disconnectWs();
+      connectWs();
+      navigate('/', { replace: true });
+    } catch {
+      setSwitchError('Error al cambiar de sucursal');
+    }
+  }
 
   async function handleLogout() {
     try {
@@ -76,6 +108,21 @@ export function Layout() {
                   </RoleAwareRenderer>
                 ))}
 
+                {OPS_ITEMS.map((item) => (
+                  <RoleAwareRenderer key={item.path} permission={item.permission}>
+                    <Link
+                      to={item.path}
+                      className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                        isActive(item.path)
+                          ? 'bg-teal-100 text-teal-800'
+                          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  </RoleAwareRenderer>
+                ))}
+
                 {ADMIN_ITEMS.map((item) => (
                   <RoleAwareRenderer key={item.path} permission={item.permission}>
                     <Link
@@ -98,8 +145,11 @@ export function Layout() {
                 <BranchSelector
                   branches={user.branches ?? []}
                   activeBranch={activeBranch}
-                  onSelect={(branch) => setActiveBranch(branch)}
+                  onSwitch={handleBranchSwitch}
                 />
+              )}
+              {switchError && (
+                <span className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded">{switchError}</span>
               )}
               <span className={`h-2 w-2 rounded-full ${statusDot}`} />
               {user && (
@@ -132,11 +182,11 @@ export function Layout() {
 function BranchSelector({
   branches,
   activeBranch,
-  onSelect,
+  onSwitch,
 }: Readonly<{
   branches: BranchInfo[];
   activeBranch: BranchInfo | null;
-  onSelect: (branch: BranchInfo) => void;
+  onSwitch: (branch: BranchInfo) => void;
 }>) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -177,7 +227,7 @@ function BranchSelector({
           {branches.map((branch) => (
             <button
               key={branch.id}
-              onClick={() => { onSelect(branch); setOpen(false); }}
+              onClick={() => { onSwitch(branch); setOpen(false); }}
               className={`w-full text-left px-3 py-2 text-sm transition-colors flex items-center gap-2 ${
                 activeBranch?.id === branch.id
                   ? 'bg-purple-50 text-purple-700 font-medium'
