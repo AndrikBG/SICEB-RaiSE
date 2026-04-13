@@ -12,6 +12,7 @@ import { PendingLabStudiesView } from '@/features/clinical/PendingLabStudiesView
 import { LabResultEntryForm } from '@/features/clinical/LabResultEntryForm';
 import { UserManagementView } from '@/features/admin/UserManagementView';
 import { RoleConfigurationView } from '@/features/admin/RoleConfigurationView';
+import { BranchManagementView } from '@/features/operations/BranchManagementView';
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
           <Route path="/patients/:patientId/consultation" element={<ConsultationWizard />} />
           <Route path="/lab" element={<PendingLabStudiesView />} />
           <Route path="/lab/:studyId/result" element={<LabResultEntryForm />} />
+          <Route path="/branches" element={<BranchManagementView />} />
           <Route path="/admin/users" element={<UserManagementView />} />
           <Route path="/admin/roles" element={<RoleConfigurationView />} />
         </Route>
