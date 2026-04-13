@@ -28,3 +28,6 @@ SELECT apply_rls_policy('branch_service_catalog');
 -- NOTE: RLS on partitioned tables applies to the parent; partitions inherit.
 SELECT apply_rls_policy('inventory_items');
 SELECT apply_rls_policy('inventory_deltas');
+
+-- Phase 4: Tariff table (S4.3)
+SELECT apply_rls_policy('service_tariffs');
