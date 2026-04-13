@@ -45,6 +45,11 @@ public class InventoryController {
         this.authorizationService = authorizationService;
     }
 
+    private static UUID resolveStaffId(SicebUserPrincipal principal) {
+        // Admin users may not have a staffId — use userId as audit trail fallback
+        return principal.staffId() != null ? principal.staffId() : principal.userId();
+    }
+
     // ---- Command endpoints ----
 
     @PostMapping("/increments")
@@ -55,7 +60,7 @@ public class InventoryController {
         SicebUserPrincipal principal = authorizationService.currentPrincipal();
         var cmd = new IncrementStockCommand(
                 request.itemId(), request.quantity(), request.reason(), request.sourceRef(), idempotencyKey);
-        InventoryDelta delta = commandHandler.handle(cmd, principal.activeBranchId(), principal.staffId());
+        InventoryDelta delta = commandHandler.handle(cmd, principal.activeBranchId(), resolveStaffId(principal));
         return ResponseEntity.status(HttpStatus.CREATED).body(DeltaResponse.from(delta));
     }
 
@@ -67,7 +72,7 @@ public class InventoryController {
         SicebUserPrincipal principal = authorizationService.currentPrincipal();
         var cmd = new DecrementStockCommand(
                 request.itemId(), request.quantity(), request.reason(), request.sourceRef(), idempotencyKey);
-        InventoryDelta delta = commandHandler.handle(cmd, principal.activeBranchId(), principal.staffId());
+        InventoryDelta delta = commandHandler.handle(cmd, principal.activeBranchId(), resolveStaffId(principal));
         return ResponseEntity.status(HttpStatus.CREATED).body(DeltaResponse.from(delta));
     }
 
@@ -79,7 +84,7 @@ public class InventoryController {
         SicebUserPrincipal principal = authorizationService.currentPrincipal();
         var cmd = new AdjustStockCommand(
                 request.itemId(), request.absoluteQuantity(), request.reason(), idempotencyKey);
-        InventoryDelta delta = commandHandler.handle(cmd, principal.activeBranchId(), principal.staffId());
+        InventoryDelta delta = commandHandler.handle(cmd, principal.activeBranchId(), resolveStaffId(principal));
         return ResponseEntity.status(HttpStatus.CREATED).body(DeltaResponse.from(delta));
     }
 
@@ -91,7 +96,7 @@ public class InventoryController {
             @Valid @RequestBody ThresholdRequest request) {
         SicebUserPrincipal principal = authorizationService.currentPrincipal();
         var cmd = new SetThresholdCommand(itemId, request.threshold(), idempotencyKey);
-        InventoryDelta delta = commandHandler.handle(cmd, principal.activeBranchId(), principal.staffId());
+        InventoryDelta delta = commandHandler.handle(cmd, principal.activeBranchId(), resolveStaffId(principal));
         return ResponseEntity.ok(DeltaResponse.from(delta));
     }
 
@@ -103,14 +108,14 @@ public class InventoryController {
             @Valid @RequestBody ExpirationRequest request) {
         SicebUserPrincipal principal = authorizationService.currentPrincipal();
         var cmd = new UpdateExpirationCommand(itemId, request.expirationDate(), idempotencyKey);
-        InventoryDelta delta = commandHandler.handle(cmd, principal.activeBranchId(), principal.staffId());
+        InventoryDelta delta = commandHandler.handle(cmd, principal.activeBranchId(), resolveStaffId(principal));
         return ResponseEntity.ok(DeltaResponse.from(delta));
     }
 
     // ---- Query endpoints ----
 
     @GetMapping
-    @PreAuthorize("@auth.check('inventory:read_service') or @auth.check('inventory:read_all')")
+    @PreAuthorize("hasAnyAuthority('inventory:read_service','inventory:read_all')")
     public ResponseEntity<InventoryPageResponse> listInventory(
             @RequestParam(required = false) StockStatus filterStatus,
             @RequestParam(required = false) String filterCategory,
@@ -140,7 +145,7 @@ public class InventoryController {
     }
 
     @GetMapping("/{itemId}")
-    @PreAuthorize("@auth.check('inventory:read_service') or @auth.check('inventory:read_all')")
+    @PreAuthorize("hasAnyAuthority('inventory:read_service','inventory:read_all')")
     public ResponseEntity<ItemResponse> getItem(@PathVariable UUID itemId) {
         SicebUserPrincipal principal = authorizationService.currentPrincipal();
         InventoryItem item = queryService.findItem(itemId, principal.activeBranchId())

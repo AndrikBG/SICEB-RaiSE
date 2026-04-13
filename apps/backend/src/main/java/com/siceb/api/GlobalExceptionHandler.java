@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.jpa.JpaSystemException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -104,6 +105,20 @@ public class GlobalExceptionHandler {
         ErrorResponse response = ErrorResponse.of(ErrorCode.VALIDATION_FAILED,
                 "Request validation failed", details);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    @ExceptionHandler(JpaSystemException.class)
+    public ResponseEntity<ErrorResponse> handleJpaSystem(JpaSystemException ex) {
+        String rootMsg = ex.getMostSpecificCause().getMessage();
+        if (rootMsg != null && rootMsg.contains("Insufficient stock")) {
+            String sanitized = rootMsg.lines().findFirst().orElse(rootMsg);
+            ErrorResponse response = ErrorResponse.of(ErrorCode.INSUFFICIENT_STOCK, sanitized);
+            log.warn("Insufficient stock: {}", rootMsg);
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+        }
+        log.error("JPA system error", ex);
+        ErrorResponse response = ErrorResponse.of(ErrorCode.INTERNAL_ERROR);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 
     @ExceptionHandler(Exception.class)
