@@ -1,0 +1,113 @@
+artifact_type: story-design
+version: 1
+skill: rai-story-design
+created: '2026-04-12T18:00:00Z'
+story: 'S4.2'
+epic: 'E4'
+content:
+  summary: >
+    SICEB has no inventory tracking. This story adds CQRS-based delta inventory mutations
+    with PG trigger materialization, pg_notify → STOMP real-time push, partitioned tables,
+    and RLS enforcement — enabling branch managers to record stock movements and admins
+    to see cross-branch inventory in real time.
+  complexity: complex
+  acceptance_criteria:
+    - id: AC1
+      description: '5 delta command types accepted via REST (increment, decrement, adjust, threshold, expiration)'
+      verifiable: true
+    - id: AC2
+      description: 'Idempotency — duplicate key returns original result, no second write'
+      verifiable: true
+    - id: AC3
+      description: 'Stock materialized within same transaction as delta insert (PG trigger, no eventual consistency)'
+      verifiable: true
+    - id: AC4
+      description: 'pg_notify → STOMP push delivers change to subscribed client < 2 seconds end-to-end'
+      verifiable: true
+    - id: AC5
+      description: 'RLS enforced: service manager sees only own service items; admin cross-branch via admin_reporting'
+      verifiable: true
+    - id: AC6
+      description: 'Partition pruning confirmed via EXPLAIN ANALYZE on single-branch inventory query'
+      verifiable: true
+    - id: AC7
+      description: 'LowStockAlert (OK/LOW_STOCK/OUT_OF_STOCK) and ExpirationAlert (OK/EXPIRING_SOON/EXPIRED) projections correct'
+      verifiable: true
+    - id: AC8
+      description: 'PWA InventoryRealtimeManager subscribes/unsubscribes correctly on branch switch'
+      verifiable: true
+    - id: AC9
+      description: 'No direct UPDATE on inventory_deltas — append-only enforced'
+      verifiable: true
+    - id: AC10
+      description: 'WebSocket subscription to another branch channel without inventory:read_all is rejected'
+      verifiable: true
+  integration_points:
+    - module: 'domain.inventory.model'
+      change_type: new
+      files:
+        - 'apps/backend/src/main/java/com/siceb/domain/inventory/model/InventoryItem.java'
+        - 'apps/backend/src/main/java/com/siceb/domain/inventory/model/InventoryDelta.java'
+        - 'apps/backend/src/main/java/com/siceb/domain/inventory/model/DeltaType.java'
+        - 'apps/backend/src/main/java/com/siceb/domain/inventory/model/StockStatus.java'
+        - 'apps/backend/src/main/java/com/siceb/domain/inventory/model/ExpirationStatus.java'
+    - module: 'domain.inventory.repository'
+      change_type: new
+      files:
+        - 'apps/backend/src/main/java/com/siceb/domain/inventory/repository/InventoryItemRepository.java'
+        - 'apps/backend/src/main/java/com/siceb/domain/inventory/repository/InventoryDeltaRepository.java'
+    - module: 'domain.inventory.service'
+      change_type: new
+      files:
+        - 'apps/backend/src/main/java/com/siceb/domain/inventory/service/InventoryCommandHandler.java'
+        - 'apps/backend/src/main/java/com/siceb/domain/inventory/service/InventoryQueryService.java'
+        - 'apps/backend/src/main/java/com/siceb/domain/inventory/service/InventoryExportService.java'
+    - module: 'platform.realtime'
+      change_type: new
+      files:
+        - 'apps/backend/src/main/java/com/siceb/platform/realtime/RealtimeEventPublisher.java'
+        - 'apps/backend/src/main/java/com/siceb/platform/realtime/WebSocketSecurityInterceptor.java'
+    - module: 'config'
+      change_type: modification
+      files:
+        - 'apps/backend/src/main/java/com/siceb/config/WebSocketConfig.java'
+    - module: 'api'
+      change_type: new
+      files:
+        - 'apps/backend/src/main/java/com/siceb/api/InventoryController.java'
+    - module: 'migrations'
+      change_type: new
+      files:
+        - 'apps/backend/src/main/resources/db/migration/V016__create_inventory_schema.sql'
+    - module: 'migrations.rls'
+      change_type: modification
+      files:
+        - 'apps/backend/src/main/resources/db/migration/R__rls_policies.sql'
+    - module: 'frontend.lib'
+      change_type: new
+      files:
+        - 'apps/frontend/src/lib/inventory-realtime.ts'
+  decisions:
+    - id: D-S42-1
+      choice: 'PG trigger materialization (same transaction) instead of Java-side projection'
+      rationale: 'Stock must be immediately consistent — no gap between delta insert and materialized state. ClinicalEventProjector is Java-side but tolerates eventual consistency; inventory does not.'
+      alternatives_considered:
+        - 'Java ClinicalEventProjector pattern (rejected: eventual consistency gap)'
+        - 'Materialized view with REFRESH (rejected: not real-time)'
+    - id: D-S42-2
+      choice: 'pg_notify for WebSocket bridge instead of application-level event publishing'
+      rationale: 'Trigger already runs in DB transaction — pg_notify from trigger guarantees event fires iff materialization succeeds. Application-level would require polling or change-data-capture.'
+      alternatives_considered:
+        - 'Spring ApplicationEvent (rejected: requires separate listener, possible ordering issues)'
+        - 'Debezium CDC (rejected: infrastructure overhead for single-instance deployment)'
+    - id: D-S42-3
+      choice: 'Extend existing permission model with 3 new granular keys rather than replacing existing ones'
+      rationale: 'V010 already seeds inventory:read and inventory:manage used by other features. Adding inventory:read_all, inventory:read_service, inventory:adjust preserves backward compatibility.'
+      alternatives_considered:
+        - 'Replace inventory:read with read_all + read_service (rejected: breaks existing role assignments)'
+refs:
+  epic_scope: 'work/epics/e4-multi-branch-inventory/scope.md'
+metadata:
+  risk_level: high
+  size: L
+  activities: ['A4.2', 'A4.3', 'A4.5.1', 'A4.5.2', 'A4.5.3', 'A4.6.1']

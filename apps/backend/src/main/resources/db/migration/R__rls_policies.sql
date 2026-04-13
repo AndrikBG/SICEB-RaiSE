@@ -23,3 +23,8 @@ SELECT apply_rls_policy('arco_requests');
 -- Phase 4: Branch Management tables (S4.1)
 SELECT apply_rls_policy('branch_onboarding_status');
 SELECT apply_rls_policy('branch_service_catalog');
+
+-- Phase 4: Inventory tables (S4.2)
+-- NOTE: RLS on partitioned tables applies to the parent; partitions inherit.
+SELECT apply_rls_policy('inventory_items');
+SELECT apply_rls_policy('inventory_deltas');
