@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent } from 'react';
+import { useState, useEffect, useCallback, type FormEvent } from 'react';
 import {
   tariffApi,
   type TariffResponse,
@@ -32,7 +32,7 @@ export function TariffConfigurationView() {
     effectiveFrom: '',
   });
 
-  async function loadTariffs(pageNum: number) {
+  const loadTariffs = useCallback(async (pageNum: number) => {
     setLoading(true);
     setError('');
     try {
@@ -52,9 +52,9 @@ export function TariffConfigurationView() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [isSearching, searchQuery, includeHistorical]);
 
-  useEffect(() => { loadTariffs(page); }, [page, includeHistorical]);
+  useEffect(() => { loadTariffs(page); }, [page, loadTariffs]);
 
   function handleSearch() {
     if (searchQuery.trim()) {

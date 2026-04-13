@@ -84,7 +84,7 @@ export function InventoryDashboardView() {
       );
     });
     return () => unsubscribeInventory();
-  }, [activeBranch?.id]);
+  }, [activeBranch]);
 
   async function handleExport() {
     try {

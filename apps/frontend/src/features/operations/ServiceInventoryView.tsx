@@ -89,7 +89,7 @@ export function ServiceInventoryView() {
       );
     });
     return () => unsubscribeInventory();
-  }, [activeBranch?.id]);
+  }, [activeBranch]);
 
   function handleSearch() {
     setPage(0);
