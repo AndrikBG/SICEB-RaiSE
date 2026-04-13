@@ -13,6 +13,8 @@ import { LabResultEntryForm } from '@/features/clinical/LabResultEntryForm';
 import { UserManagementView } from '@/features/admin/UserManagementView';
 import { RoleConfigurationView } from '@/features/admin/RoleConfigurationView';
 import { BranchManagementView } from '@/features/operations/BranchManagementView';
+import { InventoryDashboardView } from '@/features/operations/InventoryDashboardView';
+import { ServiceInventoryView } from '@/features/operations/ServiceInventoryView';
 
 function App() {
   return (
@@ -33,6 +35,8 @@ function App() {
           <Route path="/lab" element={<PendingLabStudiesView />} />
           <Route path="/lab/:studyId/result" element={<LabResultEntryForm />} />
           <Route path="/branches" element={<BranchManagementView />} />
+          <Route path="/inventory" element={<InventoryDashboardView />} />
+          <Route path="/inventory/service" element={<ServiceInventoryView />} />
           <Route path="/admin/users" element={<UserManagementView />} />
           <Route path="/admin/roles" element={<RoleConfigurationView />} />
         </Route>
