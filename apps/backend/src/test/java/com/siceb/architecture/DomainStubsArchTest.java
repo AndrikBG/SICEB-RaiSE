@@ -23,13 +23,14 @@ class DomainStubsArchTest {
     /**
      * Modules activated so far — add modules here as their iteration begins.
      * Phase 2: clinicalcare, prescriptions, laboratory.
-     * Phase 4: inventory.
+     * Phase 4: inventory, billing (tariff configuration via S4.3).
      */
     private static final Set<String> ACTIVATED_MODULES = Set.of(
             "com.siceb.domain.clinicalcare",
             "com.siceb.domain.prescriptions",
             "com.siceb.domain.laboratory",
-            "com.siceb.domain.inventory"
+            "com.siceb.domain.inventory",
+            "com.siceb.domain.billing"
     );
 
     private static final JavaClasses domainClasses = new ClassFileImporter()

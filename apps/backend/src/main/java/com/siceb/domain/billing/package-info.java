@@ -4,7 +4,7 @@
  * future CFDI integration point.
  *
  * <p>Dependencies: none (outgoing). Read-only access to: Clinical Care, Pharmacy, Laboratory.
- * <p>Implementation: Iteration 5.
- * <p>Constraint IC-01: This module is a STUB — no business logic until its iteration.
+ * <p>Implementation: Tariff configuration activated in Phase 4 (S4.3).
+ * Full billing (payments, receipts, CFDI) deferred to Phase 5.
  */
 package com.siceb.domain.billing;
