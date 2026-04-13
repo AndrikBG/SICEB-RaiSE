@@ -80,12 +80,12 @@ S4.1 unblocks everything. S4.2 is critical path and highest risk (partitioning, 
 - **Demo:** Register new branch → onboarding → switch to it → see empty inventory context
 
 #### M2: Core Backend Complete (after S4.2 + S4.3)
-- [ ] 5 delta command types working with idempotency enforcement
-- [ ] StockMaterializationTrigger materializes stock transactionally
-- [ ] pg_notify → STOMP push delivers inventory changes to subscribed clients
-- [ ] WebSocket JWT auth rejects unauthorized subscriptions
+- [x] 5 delta command types working with idempotency enforcement
+- [x] StockMaterializationTrigger materializes stock transactionally
+- [x] pg_notify → STOMP push delivers inventory changes to subscribed clients
+- [x] WebSocket JWT auth rejects unauthorized subscriptions
 - [ ] Tariff CRUD with effective-date resolution working
-- [ ] Partitioning validated: queries use partition pruning (EXPLAIN ANALYZE)
+- [x] Partitioning validated: queries use partition pruning (EXPLAIN ANALYZE)
 - **Demo:** Increment stock via API → see materialized stock → receive WebSocket event → query tariff
 
 #### M3: E2E Integration (after S4.4) — PAT-E-539
@@ -110,7 +110,7 @@ S4.1 unblocks everything. S4.2 is critical path and highest risk (partitioning, 
 | Story | Status | Branch | Started | Completed | Notes |
 |-------|--------|--------|---------|-----------|-------|
 | S4.1 | Done | `story/s4.1/branch-management` | 2026-04-11 | 2026-04-12 | 5 tasks, 110 tests, 0.83x velocity |
-| S4.2 | Pending | — | — | — | |
+| S4.2 | Done | `story/s4.2/inventory-cqrs-realtime` | 2026-04-12 | 2026-04-12 | 7 tasks, 180 tests, 0.89x velocity |
 | S4.3 | Pending | — | — | — | |
 | S4.4 | Pending | — | — | — | |
 | S4.5 | Pending | — | — | — | |
