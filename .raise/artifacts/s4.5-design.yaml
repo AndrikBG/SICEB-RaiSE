@@ -1,0 +1,60 @@
+artifact_type: story-design
+version: 1
+skill: rai-story-design
+created: '2026-04-13T20:40:00Z'
+story: 'S4.5'
+epic: 'E4'
+content:
+  summary: 'Validate multi-branch scalability (3→15 branches <10% degradation) with k6 load tests, partition pruning verification, and WebSocket connection scaling to produce a go/no-go report for production rollout.'
+  complexity: moderate
+  acceptance_criteria:
+    - id: AC1
+      description: 'Data seeding produces consistent test data for 3, 9, and 15 branches'
+      verifiable: true
+    - id: AC2
+      description: 'Per-branch query p95 degrades <10% from 3→15 branches'
+      verifiable: true
+    - id: AC3
+      description: 'Cross-branch admin query p95 degrades <10% from 3→15 branches'
+      verifiable: true
+    - id: AC4
+      description: '150 concurrent WebSocket connections sustained with message delivery <2s'
+      verifiable: true
+    - id: AC5
+      description: 'EXPLAIN ANALYZE confirms partition pruning on inventory_items and inventory_deltas'
+      verifiable: true
+    - id: AC6
+      description: 'Patient search <1s with >50K seeded records'
+      verifiable: true
+    - id: AC7
+      description: 'Scalability report committed with baselines, measurements, pass/fail'
+      verifiable: true
+  integration_points:
+    - module: 'tests.scalability'
+      change_type: new
+      files: ['tests/scalability/seed-branches.sql', 'tests/scalability/http-load.js', 'tests/scalability/ws-load.js', 'tests/scalability/k6.config.json']
+    - module: 'domain.inventory.scalability'
+      change_type: new
+      files: ['apps/backend/src/test/java/com/siceb/domain/inventory/scalability/PartitionPruningTest.java']
+    - module: 'work.epics.e4'
+      change_type: new
+      files: ['work/epics/e4-multi-branch-inventory/scalability-report.md']
+  decisions:
+    - id: D-045
+      choice: 'k6 for load testing'
+      rationale: 'JavaScript-based, native WebSocket support, CLI-first, lightweight binary — no build system integration needed'
+      alternatives_considered: ['JMeter (XML config, heavy UI)', 'Gatling (Scala DSL, heavier deps)']
+    - id: D-046
+      choice: 'Docker Compose for load tests, Testcontainers for EXPLAIN ANALYZE'
+      rationale: 'Load tests need realistic connection pooling and WebSocket broker; EXPLAIN only needs DB'
+      alternatives_considered: ['All Testcontainers (insufficient for WebSocket/connection pooling realism)', 'All Docker Compose (EXPLAIN test simpler in JUnit)']
+    - id: D-047
+      choice: 'SQL seeding scripts (parameterized by branch count)'
+      rationale: 'Deterministic, version-controlled, inspectable; reuses create_inventory_partitions() from V016'
+      alternatives_considered: ['Programmatic Java data generation', 'k6 setup phase seeding']
+refs:
+  epic_scope: 'work/epics/e4-multi-branch-inventory/scope.md'
+  phase_doc: 'docs/ADD/implementation/phase4-inventory.md'
+metadata:
+  activity: 'A4.8'
+  driver: 'ESC-02'
