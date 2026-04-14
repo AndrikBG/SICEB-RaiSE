@@ -113,7 +113,7 @@ S4.1 unblocks everything. S4.2 is critical path and highest risk (partitioning, 
 | S4.2 | Done | `story/s4.2/inventory-cqrs-realtime` | 2026-04-12 | 2026-04-12 | 7 tasks, 180 tests, 0.89x velocity |
 | S4.3 | Done | `story/s4.3/tariff-configuration` | 2026-04-13 | 2026-04-13 | 3 tasks, 202 tests, 1.11x velocity |
 | S4.4 | Done | `story/s4.4/pwa-views` | 2026-04-13 | 2026-04-13 | 5 tasks, 4 views, 1.7x velocity |
-| S4.5 | Pending | — | — | — | |
+| S4.5 | Done | `story/s4.5/scalability-validation` | 2026-04-13 | 2026-04-13 | 3 tasks, ESC-02 PASS, 0.9x velocity |
 
 | Milestone | Status | Verified |
 |-----------|--------|----------|
