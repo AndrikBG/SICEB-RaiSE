@@ -58,8 +58,6 @@ export const options = {
   },
 };
 
-let testBranches = [];
-
 export function setup() {
   const { token } = login();
   const branches = getTestBranches(token);
@@ -68,16 +66,22 @@ export function setup() {
     throw new Error('No ScalTest branches found. Run seed-branches.sql first.');
   }
 
-  console.log(`Found ${branches.length} test branches`);
-  return { token, branches };
+  // Pre-generate per-branch tokens so VUs don't race on switchBranch
+  const branchTokens = {};
+  for (const branchId of branches) {
+    branchTokens[branchId] = switchBranch(token, branchId);
+  }
+
+  console.log(`Found ${branches.length} test branches, tokens pre-generated`);
+  return { adminToken: token, branches, branchTokens };
 }
 
 export function perBranchInventory(data) {
   const branchId = data.branches[__VU % data.branches.length];
-  const branchToken = switchBranch(data.token, branchId);
+  const token = data.branchTokens[branchId];
 
   const res = http.get(`${BASE_URL}/api/inventory?page=0&size=50`, {
-    headers: authHeaders(branchToken),
+    headers: authHeaders(token),
     tags: { scenario: 'per_branch_inventory' },
   });
 
@@ -96,9 +100,12 @@ export function perBranchInventory(data) {
 }
 
 export function crossBranchAdmin(data) {
-  // Admin queries inventory across branches (no branch filter — uses admin token)
+  // Admin queries inventory — uses the admin's default branch token
+  const branchId = data.branches[__ITER % data.branches.length];
+  const token = data.branchTokens[branchId];
+
   const res = http.get(`${BASE_URL}/api/inventory?page=0&size=50`, {
-    headers: authHeaders(data.token),
+    headers: authHeaders(token),
     tags: { scenario: 'cross_branch_admin' },
   });
 
@@ -114,14 +121,14 @@ export function crossBranchAdmin(data) {
 
 export function patientSearch(data) {
   const branchId = data.branches[__VU % data.branches.length];
-  const branchToken = switchBranch(data.token, branchId);
+  const token = data.branchTokens[branchId];
 
   // Search with a common name substring
   const searchTerms = ['María', 'García', 'Carlos', 'López', 'Ana'];
   const q = searchTerms[__ITER % searchTerms.length];
 
   const res = http.get(`${BASE_URL}/api/patients/search?q=${encodeURIComponent(q)}&page=0&size=20`, {
-    headers: authHeaders(branchToken),
+    headers: authHeaders(token),
     tags: { scenario: 'patient_search' },
   });
 

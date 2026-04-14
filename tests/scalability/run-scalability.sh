@@ -7,7 +7,6 @@
 # Prerequisites:
 #   - Docker Compose running (docker compose up -d)
 #   - k6 installed (https://k6.io/docs/get-started/installation/)
-#   - psql available for seeding
 
 set -euo pipefail
 
@@ -21,12 +20,12 @@ HTTP_ONLY=false
 WS_ONLY=false
 BASE_URL="${BASE_URL:-http://localhost:8080}"
 WS_URL="${WS_URL:-ws://localhost:8080}"
-DB_URL="${DB_URL:-postgresql://siceb:siceb_dev_password@localhost:5432/siceb}"
 RESULTS_DIR="$SCRIPT_DIR/results"
 HTTP_VUS="${HTTP_VUS:-10}"
 HTTP_DURATION="${HTTP_DURATION:-30s}"
 WS_VUS="${WS_VUS:-150}"
 WS_DURATION="${WS_DURATION:-60s}"
+COMPOSE_CMD="${COMPOSE_CMD:-docker compose}"
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -47,14 +46,13 @@ echo "Branches: $BRANCH_COUNT | Base URL: $BASE_URL"
 echo ""
 
 if ! command -v k6 &>/dev/null; then
-  echo "ERROR: k6 not found. Install from https://k6.io/docs/get-started/installation/"
-  echo "  Arch/Manjaro: yay -S k6"
-  echo "  macOS: brew install k6"
+  echo "ERROR: k6 not found. Install: yay -S k6-bin (Arch) or brew install k6 (macOS)"
   exit 1
 fi
 
-if ! command -v psql &>/dev/null; then
-  echo "ERROR: psql not found. Install postgresql-client."
+# Check Docker Compose is running
+if ! $COMPOSE_CMD -f "$PROJECT_ROOT/docker-compose.yml" ps --status running 2>/dev/null | grep -q "db"; then
+  echo "ERROR: Docker Compose services not running. Run: docker compose up -d"
   exit 1
 fi
 
@@ -68,17 +66,20 @@ fi
 mkdir -p "$RESULTS_DIR"
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 
-# Step 1: Seed data
+# Step 1: Seed data via docker compose exec
 if [ "$SKIP_SEED" = false ]; then
   echo ""
   echo "--- Step 1: Seeding $BRANCH_COUNT branches ---"
   PATIENTS_PER_BRANCH=$(( 50010 / BRANCH_COUNT + 1 ))
-  psql "$DB_URL" \
-    -v branch_count="$BRANCH_COUNT" \
-    -v patients_per_branch="$PATIENTS_PER_BRANCH" \
-    -v items_per_branch=1000 \
-    -v deltas_per_item=5 \
-    -f "$SCRIPT_DIR/seed-branches.sql"
+
+  # Generate SQL from template by replacing placeholders
+  sed \
+    -e "s/__BRANCH_COUNT__/$BRANCH_COUNT/g" \
+    -e "s/__PATIENTS_PER_BRANCH__/$PATIENTS_PER_BRANCH/g" \
+    -e "s/__ITEMS_PER_BRANCH__/1000/g" \
+    -e "s/__DELTAS_PER_ITEM__/5/g" \
+    "$SCRIPT_DIR/seed-branches.sql" \
+    | $COMPOSE_CMD -f "$PROJECT_ROOT/docker-compose.yml" exec -T db psql -U siceb -d siceb
   echo "Seeding complete."
 else
   echo "--- Skipping seed (--skip-seed) ---"

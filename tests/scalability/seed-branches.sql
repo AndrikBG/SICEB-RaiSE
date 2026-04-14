@@ -1,17 +1,9 @@
 -- Scalability test data seeding script
--- Usage: psql -v branch_count=15 -v patients_per_branch=3334 -f seed-branches.sql
--- Defaults: 15 branches, ~3334 patients/branch (~50K total)
+-- Parameters are hardcoded at the top of the DO block.
+-- To change: edit the 4 constants, or use run-scalability.sh which generates SQL with sed.
 --
 -- Requires: Flyway migrations already applied (branches, inventory schema, patient_search_view)
 -- Runs as DB owner (bypasses RLS).
-
-\set ON_ERROR_STOP on
-
--- Default parameters (overridable via -v)
-SELECT coalesce(:'branch_count', '15')::int AS branch_count \gset
-SELECT coalesce(:'patients_per_branch', '3334')::int AS patients_per_branch \gset
-SELECT coalesce(:'items_per_branch', '1000')::int AS items_per_branch \gset
-SELECT coalesce(:'deltas_per_item', '5')::int AS deltas_per_item \gset
 
 -- Clean previous test data (idempotent re-runs)
 -- Drop branch-specific partitions to avoid append-only trigger on deltas
@@ -32,6 +24,9 @@ DELETE FROM service_tariffs WHERE branch_id IN (
 DELETE FROM patient_search_view WHERE branch_id IN (
     SELECT id FROM branches WHERE name LIKE 'ScalTest-Branch-%'
 );
+DELETE FROM patients WHERE branch_id IN (
+    SELECT id FROM branches WHERE name LIKE 'ScalTest-Branch-%'
+);
 DELETE FROM branch_service_catalog WHERE branch_id IN (
     SELECT id FROM branches WHERE name LIKE 'ScalTest-Branch-%'
 );
@@ -41,14 +36,29 @@ DELETE FROM branch_onboarding_status WHERE branch_id IN (
 DELETE FROM branches WHERE name LIKE 'ScalTest-Branch-%';
 
 -- Seed branches, partitions, services, inventory, patients
+-- PARAMETERS: edit these 4 lines to change seed volume
 DO $$
 DECLARE
+    v_branch_count INT := __BRANCH_COUNT__;
+    v_patients_per_branch INT := __PATIENTS_PER_BRANCH__;
+    v_items_per_branch INT := __ITEMS_PER_BRANCH__;
+    v_deltas_per_item INT := __DELTAS_PER_ITEM__;
     b_id UUID;
     svc_id UUID;
     item_id UUID;
     b_idx INT;
     i INT;
     j INT;
+    p_id UUID;
+    p_first TEXT;
+    p_paternal TEXT;
+    p_maternal TEXT;
+    p_dob DATE;
+    p_type TEXT;
+    p_gender TEXT;
+    p_phone TEXT;
+    p_curp TEXT;
+    p_cred TEXT;
     categories TEXT[] := ARRAY['MEDICAMENTO', 'INSUMO', 'EQUIPO', 'REACTIVO', 'MATERIAL'];
     names_prefix TEXT[] := ARRAY['Paracetamol', 'Ibuprofeno', 'Amoxicilina', 'Omeprazol', 'Metformina',
                                   'Jeringa', 'Guantes', 'Gasas', 'Vendaje', 'Algodón',
@@ -60,10 +70,6 @@ DECLARE
                                 'Pérez', 'Sánchez', 'Ramírez', 'Torres', 'Flores', 'Rivera',
                                 'Gómez', 'Díaz', 'Cruz', 'Morales', 'Reyes', 'Gutiérrez',
                                 'Ortiz', 'Ramos'];
-    v_branch_count INT := :'branch_count';
-    v_patients_per_branch INT := :'patients_per_branch';
-    v_items_per_branch INT := :'items_per_branch';
-    v_deltas_per_item INT := :'deltas_per_item';
     staff_id UUID := gen_random_uuid();
 BEGIN
     FOR b_idx IN 1..v_branch_count LOOP
@@ -126,27 +132,39 @@ BEGIN
         VALUES (gen_random_uuid(), svc_id, b_id, 150.0000 + (b_idx * 10),
                 '2026-01-01T00:00:00Z', staff_id, now());
 
-        -- 7. Seed patients for patient_search_view
+        -- 7. Seed patients (parent table) + patient_search_view (read model)
         FOR i IN 1..v_patients_per_branch LOOP
+            p_id := gen_random_uuid();
+            p_first := first_names[1 + (i % array_length(first_names, 1))];
+            p_paternal := last_names[1 + (i % array_length(last_names, 1))];
+            p_maternal := last_names[1 + ((i + 7) % array_length(last_names, 1))];
+            p_dob := '1960-01-01'::date + (i % 20000);
+            p_type := CASE WHEN i % 3 = 0 THEN 'STUDENT' WHEN i % 3 = 1 THEN 'WORKER' ELSE 'EXTERNAL' END;
+            p_gender := CASE WHEN i % 2 = 0 THEN 'MALE' ELSE 'FEMALE' END;
+            p_phone := '55' || lpad((1000000 + i)::text, 8, '0');
+            p_curp := 'CURP' || lpad(i::text, 14, '0');
+            p_cred := 'CRED' || lpad(i::text, 10, '0');
+
+            INSERT INTO patients (
+                patient_id, first_name, paternal_surname, maternal_surname,
+                date_of_birth, gender, phone, curp, patient_type,
+                credential_number, profile_status, branch_id, created_by_staff_id
+            ) VALUES (
+                p_id, p_first, p_paternal, p_maternal,
+                p_dob, p_gender, p_phone, p_curp, p_type,
+                p_cred, 'COMPLETE', b_id, staff_id
+            );
             INSERT INTO patient_search_view (
                 patient_id, full_name, date_of_birth, patient_type, gender,
                 phone, curp, credential_number, profile_status,
                 branch_id, consultation_count, created_at
             ) VALUES (
-                gen_random_uuid(),
-                first_names[1 + (i % array_length(first_names, 1))] || ' '
-                    || last_names[1 + (i % array_length(last_names, 1))] || ' '
-                    || last_names[1 + ((i + 7) % array_length(last_names, 1))],
-                '1960-01-01'::date + (i % 20000),
-                CASE WHEN i % 3 = 0 THEN 'INSURED' WHEN i % 3 = 1 THEN 'PRIVATE' ELSE 'SOCIAL' END,
-                CASE WHEN i % 2 = 0 THEN 'MALE' ELSE 'FEMALE' END,
-                '55' || lpad((1000000 + i)::text, 8, '0'),
-                'CURP' || lpad(i::text, 14, '0'),
-                'CRED' || lpad(i::text, 10, '0'),
-                'ACTIVE',
-                b_id,
-                i % 20,
-                now()
+                p_id,
+                p_first || ' ' || p_paternal || ' ' || p_maternal,
+                p_dob, p_type, p_gender,
+                p_phone, p_curp, p_cred,
+                'COMPLETE',
+                b_id, i % 20, now()
             );
         END LOOP;
 
